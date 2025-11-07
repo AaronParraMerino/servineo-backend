@@ -1,53 +1,69 @@
-import express, { Application, Request, Response } from 'express';
+// backend/src/index.ts
+import express, { Application } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { connectDB } from './config/database';
 import faqRoutes from './features/faq/routes/faq.routes';
+import healthRoutes from './modules/health/health.routes';
 
-// Cargar variables de entorno (.env)
+// Cargar variables de entorno PRIMERO
 dotenv.config();
 
-// Crear la aplicación Express
+// Crear aplicación Express
 const app: Application = express();
 const PORT = process.env.PORT || 5000;
 
-// Middlewares
-app.use(cors());
+// Middlewares globales
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+  credentials: true
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Conectar a MongoDB
 connectDB();
 
-// Health check
-app.get('/api/health', (req: Request, res: Response) => {
+// ============= RUTAS =============
+app.use('/api/health', healthRoutes);  // Health check
+app.use('/api/faqs', faqRoutes);       // FAQ routes
+
+// Ruta raíz
+app.get('/', (req, res) => {
   res.json({
-    status: 'ok',
-    message: 'Servidor funcionando correctamente',
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development',
+    message: 'Servineo API',
+    version: '1.0.0',
+    endpoints: {
+      health: '/api/health',
+      faqs: '/api/faqs',
+      faqsSearch: '/api/faqs/search?q=keyword'
+    }
   });
 });
 
-// Rutas principales
-app.use('/api/faqs', faqRoutes);
-
-// Ruta 404 (cuando ninguna coincide)
-app.use((req: Request, res: Response) => {
+// Ruta 404 - Debe ir al FINAL
+app.use((req, res) => {
   res.status(404).json({
     success: false,
-    message: 'Ruta no encontrada',
+    message: `Ruta no encontrada: ${req.originalUrl}`
   });
 });
 
 // Iniciar servidor
 app.listen(PORT, () => {
-  console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
-  console.log(`📝 Entorno: ${process.env.NODE_ENV || 'development'}`);
+  console.log('\n🚀 ================================');
+  console.log(`   Servidor: http://localhost:${PORT}`);
+  console.log(`   Entorno: ${process.env.NODE_ENV || 'development'}`);
+  console.log('🚀 ================================\n');
 });
 
-// Manejo del cierre del servidor
+// Manejo de cierre limpio
 process.on('SIGINT', async () => {
-  console.log('\n⚠️  Cerrando servidor...');
+  console.log('\n\n⚠️  Cerrando servidor...');
   process.exit(0);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Unhandled Rejection:', reason);
+  process.exit(1);
 });

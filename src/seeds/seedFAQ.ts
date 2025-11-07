@@ -4,6 +4,7 @@ import mongoose from 'mongoose';
 import { FAQModel } from '../features/faq/models/faq.model';
 import { FAQCategoria } from '../features/faq/types/faq.types';
 
+// Cargar variables de entorno
 dotenv.config();
 
 const faqs = [
@@ -46,6 +47,30 @@ const faqs = [
     palabrasClave: ["profesionales", "verificados", "seguridad"],
     orden: 5,
     activo: true
+  },
+  {
+    pregunta: "¿Qué hago si no estoy satisfecho con el servicio?",
+    respuesta: "Tienes 24 horas para reportar cualquier problema. Ofrecemos: reembolso completo si el servicio no se realizó, servicio correctivo gratuito si hay errores, o mediación con el profesional.",
+    categoria: FAQCategoria.GENERAL,
+    palabrasClave: ["insatisfecho", "reembolso", "garantía", "queja"],
+    orden: 6,
+    activo: true
+  },
+  {
+    pregunta: "¿Puedo cancelar un servicio ya agendado?",
+    respuesta: "Sí, puedes cancelar hasta 2 horas antes del servicio sin cargo. Cancelaciones con menos tiempo tienen una penalidad del 20%.",
+    categoria: FAQCategoria.SERVICIOS,
+    palabrasClave: ["cancelar", "agendar", "modificar"],
+    orden: 7,
+    activo: true
+  },
+  {
+    pregunta: "¿Hay servicio de emergencia 24/7?",
+    respuesta: "Sí, para plomería y electricidad de emergencia contamos con profesionales disponibles 24/7. El recargo por servicio nocturno (10pm-6am) es del 30%.",
+    categoria: FAQCategoria.SERVICIOS,
+    palabrasClave: ["emergencia", "24/7", "nocturno", "urgente"],
+    orden: 8,
+    activo: true
   }
 ];
 
@@ -54,31 +79,36 @@ const seedFAQs = async (): Promise<void> => {
     const mongoURI = process.env.MONGODB_URI;
 
     if (!mongoURI) {
-      throw new Error('MONGODB_URI no está definida');
+      throw new Error('❌ MONGODB_URI no está definida en el archivo .env');
     }
 
+    console.log('📡 Conectando a MongoDB...');
     await mongoose.connect(mongoURI);
-    console.log('📡 Conectado a MongoDB');
+    console.log('✅ Conectado a MongoDB\n');
 
-    // Limpiar colección
-    await FAQModel.deleteMany({});
-    console.log('🗑️  FAQs anteriores eliminados');
+    // Limpiar colección existente
+    const deleteResult = await FAQModel.deleteMany({});
+    console.log(`🗑️  ${deleteResult.deletedCount} FAQs anteriores eliminados\n`);
 
     // Insertar nuevos FAQs
     const insertedFAQs = await FAQModel.insertMany(faqs);
-    console.log(`✅ ${insertedFAQs.length} FAQs insertados exitosamente\n`);
+    console.log(`✅ ${insertedFAQs.length} FAQs insertados exitosamente:\n`);
 
     insertedFAQs.forEach((faq, index) => {
-      console.log(`${index + 1}. [${faq.categoria}] ${faq.pregunta}`);
+      console.log(`   ${index + 1}. [${faq.categoria.toUpperCase()}] ${faq.pregunta}`);
     });
 
+    console.log('\n🎉 Seed completado exitosamente!');
+
     await mongoose.connection.close();
-    console.log('\n🔌 Conexión cerrada');
+    console.log('🔌 Conexión cerrada\n');
+    
     process.exit(0);
   } catch (error) {
-    console.error('❌ Error:', error);
+    console.error('\n❌ Error en el seed:', error);
     process.exit(1);
   }
 };
 
+// Ejecutar seed
 seedFAQs();

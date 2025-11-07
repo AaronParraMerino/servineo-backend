@@ -1,8 +1,11 @@
+// backend/src/modules/health/health.routes.ts
 import { Router } from 'express';
-import * as HealthController from './health.controller';
+import { HealthController } from './health.controller';
 
 const router = Router();
+const healthController = new HealthController();
 
-router.get('/healthy', HealthController.getHealthStatusController);
+// GET /api/health
+router.get('/', healthController.checkHealth);
 
 export default router;

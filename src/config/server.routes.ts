@@ -1,14 +1,18 @@
-import { Router } from 'express';
-import HealthRoutes from '../modules/health/health.routes';
+import { Router, Request, Response } from 'express';
+import healthRoutes from '../modules/health/health.routes';
+import faqRoutes from '../features/faq/routes/faq.routes';
 
 const router = Router();
 
-router.use('/api', HealthRoutes);
+// Rutas principales
+router.use('/api/health', healthRoutes);
+router.use('/api/faqs', faqRoutes);
 
-router.use((req, res) => {
-  console.log('Not found:', req.method, req.originalUrl);
-  res.status(404).send({
-    message: 'route not found',
+// Ruta 404 (catch-all) — Express 5 compatible
+router.all('*', (req: Request, res: Response) => {
+  res.status(404).json({
+    success: false,
+    message: 'Ruta no encontrada',
   });
 });
 

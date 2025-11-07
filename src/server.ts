@@ -1,13 +1,13 @@
+// backend/src/server.ts
 import express, { Application, Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { connectDB } from './config/database';
 import faqRoutes from './features/faq/routes/faq.routes';
 
-// Cargar variables de entorno (.env)
+// Cargar variables de entorno
 dotenv.config();
 
-// Crear la aplicación Express
 const app: Application = express();
 const PORT = process.env.PORT || 5000;
 
@@ -25,18 +25,18 @@ app.get('/api/health', (req: Request, res: Response) => {
     status: 'ok',
     message: 'Servidor funcionando correctamente',
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development',
+    environment: process.env.NODE_ENV || 'development'
   });
 });
 
-// Rutas principales
+// Rutas
 app.use('/api/faqs', faqRoutes);
 
-// Ruta 404 (cuando ninguna coincide)
-app.use((req: Request, res: Response) => {
+// Ruta 404
+app.use('*', (req: Request, res: Response) => {
   res.status(404).json({
     success: false,
-    message: 'Ruta no encontrada',
+    message: 'Ruta no encontrada'
   });
 });
 
@@ -46,7 +46,7 @@ app.listen(PORT, () => {
   console.log(`📝 Entorno: ${process.env.NODE_ENV || 'development'}`);
 });
 
-// Manejo del cierre del servidor
+// Manejar cierre graceful
 process.on('SIGINT', async () => {
   console.log('\n⚠️  Cerrando servidor...');
   process.exit(0);

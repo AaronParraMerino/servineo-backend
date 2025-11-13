@@ -34,9 +34,22 @@ const faqs = [
   },
   {
     pregunta: "¿Cuáles son los métodos de pago disponibles?",
-    respuesta: "Aceptamos: tarjetas de crédito/débito (Visa, Mastercard), transferencias bancarias, QR de bancos bolivianos, y efectivo. Todos los pagos están protegidos con SSL.",
+    respuesta: `Aceptamos varios métodos de pago para tu comodidad:
+
+    **Tarjetas de crédito y débito (Visa, Mastercard):**
+    Al finalizar tu solicitud, selecciona “Pago con tarjeta” e ingresa los datos. La transacción es procesada de forma segura mediante conexión SSL.
+
+    **Transferencias bancarias:**
+    Puedes transferir desde tu banca móvil o física a nuestras cuentas habilitadas en Banco Unión y BNB. Los datos aparecen al confirmar el servicio.
+
+    **Pago con QR (bancos bolivianos):**
+    Escanea el código QR que se mostrará al finalizar la compra. Es compatible con las apps de los principales bancos del país (Banco Unión, BNB, BCP, Mercantil Santa Cruz).
+
+    **Efectivo:**
+    Disponible solo para servicios presenciales. El pago se realiza directamente al profesional una vez completado el trabajo.
+    `,
     categoria: FAQCategoria.PAGOS,
-    palabrasClave: ["pago", "tarjeta", "transferencia", "efectivo"],
+    palabrasClave: ["pago", "tarjeta", "transferencia", "efectivo", "qr", "banco"],
     orden: 4,
     activo: true
   },

@@ -1,6 +1,7 @@
 export type CreateOfferInput = {
   fixerId: string;
   fixerName: string;
+  title?: string;
   description: string;
   services: string[];
   whatsapp: string;

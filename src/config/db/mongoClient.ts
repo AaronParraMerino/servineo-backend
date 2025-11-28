@@ -1,31 +1,48 @@
-import { MongoClient, Db } from 'mongodb';
+import { MongoClient, Db } from "mongodb";
+import dotenv from "dotenv";
 
-const uri = process.env.MONGO_URI;
-if (!uri) {
-  throw new Error('MONGO_URI environment variable is not defined');
+dotenv.config();
+
+function getEnvVar(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`❌ La variable de entorno ${name} no está definida`);
+  }
+  return value;
 }
-const client: MongoClient = new MongoClient(uri);
 
-let db: Db;
+const uri = getEnvVar("MONGO_URI");
+const dbName = getEnvVar("DB_NAME");
+
+let client: MongoClient | null = null;
+let db: Db | null = null;
 
 export async function connectDB(): Promise<Db> {
-  if (!db) {
-    try {
-      await client.connect();
-      db = client.db(process.env.DB_NAME);
-    } catch (error) {
-      console.error('Failed to connect to the database', error);
-      throw error;
-    }
+  if (db && client) return db;
+
+  try {
+    client = new MongoClient(uri);
+    await client.connect();
+
+    db = client.db(dbName);
+    console.log(`✅ Conectado correctamente a MongoDB: ${dbName}`);
+    return db;
+  } catch (error) {
+    console.error("❌ Error al conectar a MongoDB:", error);
+    throw error;
   }
-  return db;
 }
 
 export async function closeDB(): Promise<void> {
-  try {
+  if (client) {
     await client.close();
-    console.log('MongoDB connection closed');
-  } catch (error) {
-    console.error('Error closing MongoDB connection:', error);
+    console.log("🔒 Conexión cerrada a MongoDB");
+    client = null;
+    db = null;
   }
 }
+
+export const getDB = () => {
+  if (!db) throw new Error('Database not connected');
+  return db;
+};

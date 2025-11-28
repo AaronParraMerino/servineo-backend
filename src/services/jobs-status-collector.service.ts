@@ -43,32 +43,42 @@ async function countJobsByStatus(
   const fixerIdObj = new Types.ObjectId(fixerId);
 
   const jobs = await Job.find({
-    fixerId: fixerIdObj,
-    rating: { $exists: false },
-    $or: [
+    $and: [
       {
-        updatedAt: {
-          $gte: startOfDay,
-          $lte: endOfDay,
-        },
+        $or: [{ fixerId: fixerIdObj }, { fixerId: fixerId }],
       },
       {
-        $and: [
-          { $or: [{ updatedAt: { $exists: false } }, { updatedAt: null }] },
+        $or: [
           {
-            createdAt: {
+            updatedAt: {
               $gte: startOfDay,
               $lte: endOfDay,
             },
+          },
+          {
+            $and: [
+              { $or: [{ updatedAt: { $exists: false } }, { updatedAt: null }] },
+              {
+                createdAt: {
+                  $gte: startOfDay,
+                  $lte: endOfDay,
+                },
+              },
+            ],
           },
         ],
       },
     ],
   }).lean();
 
-  const completed = jobs.filter((job) => job.status === 'completed').length;
-  const pending = jobs.filter((job) => job.status === 'pending').length;
-  const inProgress = jobs.filter((job) => job.status === 'in_progress').length;
+  const validStatuses = ['completed', 'pending', 'in_progress'];
+  const jobsWithValidStatus = jobs.filter(
+    (job) => job.status && validStatuses.includes(String(job.status)),
+  );
+
+  const completed = jobsWithValidStatus.filter((job) => job.status === 'completed').length;
+  const pending = jobsWithValidStatus.filter((job) => job.status === 'pending').length;
+  const inProgress = jobsWithValidStatus.filter((job) => job.status === 'in_progress').length;
 
   return { completed, pending, inProgress };
 }

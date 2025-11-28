@@ -17,6 +17,7 @@ export interface IFixerProfile {
   hasVehicle: boolean;
   vehicleType?: string;
   photoUrl?: string;
+  descripcion?: string;
 }
 
 export interface IUser extends Document {
@@ -68,6 +69,7 @@ const userSchema = new Schema<IUser>(
       hasVehicle: { type: Boolean },
       vehicleType: { type: String },
       photoUrl: { type: String },
+      descripcion: { type: String },
     },
   },
   { collection: 'users', timestamps: true }

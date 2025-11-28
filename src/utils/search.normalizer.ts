@@ -80,3 +80,53 @@ export function normalizeForHistory(text: string): string {
 
   return normalized;
 }
+
+/**
+ * Genera variaciones de singular/plural de un término de búsqueda
+ * Ejemplos:
+ * - "muro" → ["muro", "muros"]
+ * - "muros" → ["muros", "muro"]
+ * - "exterior" → ["exterior", "exteriores"]
+ * - "exteriores" → ["exteriores", "exterior"]
+ */
+export function generatePluralVariations(text: string): string[] {
+  if (!text) {
+    return [];
+  }
+
+  const normalized = text.trim().toLowerCase();
+  const variations = [normalized];
+
+  // Caso 1: Termina en "es" (ej: exteriores, interiores)
+  if (normalized.endsWith('es') && normalized.length > 3) {
+    // Quitar "es" → exterior
+    variations.push(normalized.slice(0, -2));
+
+    // También intentar quitar solo la "s" → exteriore (poco común pero por si acaso)
+    if (!variations.includes(normalized.slice(0, -1))) {
+      variations.push(normalized.slice(0, -1));
+    }
+  }
+  // Caso 2: Termina en "s" pero no en "es" (ej: muros, pisos)
+  else if (normalized.endsWith('s') && normalized.length > 2) {
+    // Quitar "s" → muro, piso
+    variations.push(normalized.slice(0, -1));
+  }
+  // Caso 3: No termina en "s" (es singular)
+  else {
+    // Agregar "s" → muros
+    variations.push(normalized + 's');
+
+    // Agregar "es" para palabras que terminan en consonante que no sea "s"
+    // (ej: exterior → exteriores)
+    const lastChar = normalized.charAt(normalized.length - 1);
+    const consonants = 'bcdfghjklmnpqrstvwxyz';
+
+    if (consonants.includes(lastChar)) {
+      variations.push(normalized + 'es');
+    }
+  }
+
+  // Eliminar duplicados
+  return [...new Set(variations)];
+}

@@ -15,3 +15,19 @@ export async function crearOfertaTrabajo(
 
   return await repo.save(nuevaOferta);
 }
+
+export async function obtenerTodasLasOfertas() {
+  return await repo.findAll();
+}
+
+export async function obtenerOfertasPorFixer(fixerId: string) {
+  return await repo.findByFixerId(fixerId);
+}
+
+export async function actualizarOferta(offerId: string, data: Partial<CreateOfferInput>) {
+  return await repo.update(offerId, data);
+}
+
+export async function eliminarOferta(offerId: string) {
+  return await repo.delete(offerId);
+}

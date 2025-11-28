@@ -11,6 +11,4 @@ export function startJobsStatusCollectorCron(): void {
       console.error('❌ Error en recolección de estado de jobs:', error);
     }
   });
-
-  console.log('✅ Cron job de recolección de estado de jobs iniciado (cada 10 minutos)');
 }

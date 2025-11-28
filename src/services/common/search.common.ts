@@ -1,4 +1,6 @@
 // services/common/search.service.ts
+import { generatePluralVariations } from '../../utils/search.normalizer';
+
 export class SearchService {
   /**
    * Búsqueda básica con regex simple
@@ -13,7 +15,7 @@ export class SearchService {
   }
 
   /**
-   * Búsqueda con normalizador (para acentos, etc)
+   * Búsqueda con normalizador (para acentos, etc) y variaciones de plural/singular
    */
   static buildWithNormalizer(
     searchText: string | undefined,
@@ -22,17 +24,21 @@ export class SearchService {
   ): any {
     if (!searchText?.trim()) return {};
 
-    const normalized = normalizer(searchText.trim());
-    const regex = new RegExp(normalized, 'i');
+    // Generar variaciones de plural/singular
+    const variations = generatePluralVariations(searchText.trim());
+
+    // Normalizar cada variación
+    const normalizedVariations = variations.map((v) => normalizer(v));
+
+    // Crear un regex que coincida con cualquiera de las variaciones
+    const pattern = normalizedVariations.join('|');
+    const regex = new RegExp(pattern, 'i');
+
     return {
       $or: fields.map((field) => ({ [field]: regex })),
     };
   }
 
-  /**
-   * Búsqueda por tokens (palabras separadas)
-   * Busca documentos que contengan TODOS los tokens
-   */
   static buildTokenSearch(
     searchText: string | undefined,
     fields: string[],
@@ -47,35 +53,36 @@ export class SearchService {
 
     if (tokens.length === 0) return {};
 
-    // Si solo hay un token, usar búsqueda simple
+    // Si solo hay un token, usar búsqueda simple con variaciones
     if (tokens.length === 1) {
-      const token = tokens[0];
-      const basePattern = normalizer ? normalizer(token) : token;
-
-      // Use word-boundary matching for single-token searches on all fields to avoid
-      // matching substrings inside other words (e.g. 'ana' matching 'ventanas').
-      const bounded = `\\b${basePattern}\\b`;
-
+      const variations = generatePluralVariations(tokens[0]);
+      const normalizedVariations = variations.map((v) => (normalizer ? normalizer(v) : v));
+      const pattern = normalizedVariations.join('|');
       return {
-        $or: fields.map((field) => ({ [field]: new RegExp(bounded, 'i') })),
+        $or: fields.map((field) => ({ [field]: new RegExp(pattern, 'i') })),
       };
     }
 
-    // Múltiples tokens: cada campo debe contener TODOS los tokens
+    // Múltiples tokens: buscar documentos que contengan TODOS los tokens
+    // Los tokens pueden estar en cualquier campo, pero TODOS deben estar presentes en el documento
+    const tokenConditions = tokens.map((token) => {
+      const variations = generatePluralVariations(token);
+      const normalizedVariations = variations.map((v) => (normalizer ? normalizer(v) : v));
+      const pattern = normalizedVariations.join('|');
+      const regex = new RegExp(pattern, 'i');
+
+      // Cada token debe coincidir con al menos un campo
+      return {
+        $or: fields.map((field) => ({ [field]: regex })),
+      };
+    });
+
+    // Todos los tokens deben estar presentes (AND de ORs)
     return {
-      $or: fields.map((field) => ({
-        $and: tokens.map((token) => {
-          const part = normalizer ? normalizer(token) : token;
-          const pattern = `\\b${part}\\b`;
-          return { [field]: new RegExp(pattern, 'i') };
-        }),
-      })),
+      $and: tokenConditions,
     };
   }
 
-  /**
-   * Búsqueda inteligente: detecta si debe buscar por tokens o simple
-   */
   static buildSmartSearch(
     searchText: string | undefined,
     fields: string[],
@@ -90,19 +97,21 @@ export class SearchService {
       return this.buildTokenSearch(trimmed, fields, normalizer);
     }
 
-    // Búsqueda simple
-    const pattern = normalizer ? normalizer(trimmed) : trimmed;
-    const bounded = `\\b${pattern}\\b`;
+    // Búsqueda simple con variaciones de plural/singular
+    const variations = generatePluralVariations(trimmed);
+    const normalizedVariations = variations.map((v) => (normalizer ? normalizer(v) : v));
+
+    // Crear un regex que coincida con cualquiera de las variaciones
+    const pattern = normalizedVariations.join('|');
+
     return {
-      $or: fields.map((field) => ({ [field]: new RegExp(bounded, 'i') })),
+      $or: fields.map((field) => ({ [field]: new RegExp(pattern, 'i') })),
     };
   }
 
   static buildWeightedSearch(searchText: string | undefined): Record<string, unknown> {
     if (!searchText?.trim()) return {};
 
-    // Para usar con MongoDB text index. _fieldsConfig is ignored here but kept
-    // for callers that pass a config (compatibility).
     return {
       $text: { $search: searchText.trim() },
     };

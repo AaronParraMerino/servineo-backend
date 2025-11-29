@@ -6,11 +6,10 @@ import newoffersRoutes from './api/routes/newOffers.routes';
 import fixerRoutes from './api/routes/fixer.routes';
 import activityRoutes from './api/routes/activities.routes';
 import jobsRoutes from './api/routes/jobs.routes';
-captchaBack
+
 import forumRoutes from './api/routes/forum.routes';
 import faqRoutes from './api/routes/faq.routes';
 
- dev
 import searchRoutes from './api/routes/search.routes';
 import CardsRoutes from "./api/routes/card.routes";
 import UsersRoutes from "./api/routes/user.routes"; 
@@ -28,7 +27,11 @@ import { devWalletRouter } from './api/routes/dev-wallet.routes';
 import { simPaymentsRouter } from './api/routes/sim-payments.routes';
 import SudoersRouter from './modules/sudoers.routes';
 
+import captchaRoutes from './api/routes/captcha.routes';
+
 const app = express();
+app.use(cors());
+app.use(express.json());
 
 const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
   'https://devmasters-servineo-frontend-zk3q.vercel.app',
@@ -64,6 +67,8 @@ app.use('/api', jobsRoutes);
 app.use('/api', searchRoutes);
 app.use('/api', forumRoutes);
 app.use('/api', faqRoutes);
+
+app.use('/api', captchaRoutes);
 
 // --- TUS RUTAS (Añadidas) ---
 app.use('/api', CardsRoutes);

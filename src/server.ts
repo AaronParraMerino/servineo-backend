@@ -3,6 +3,7 @@ import app from './app';
 import { connectDatabase } from './config/db.config';
 import { startJobsStatusCollectorCron } from './services/jobs-status-collector.cron';
 
+// 🚀 Función para iniciar el servidor (local)
 async function startServer() {
   try {
     // 🔌 1️⃣ Conectamos a la base de datos antes de iniciar el servidor
@@ -21,4 +22,8 @@ async function startServer() {
   }
 }
 
-startServer();
+if (process.env.NODE_ENV !== 'production') {
+  startServer();
+}
+
+export default app;

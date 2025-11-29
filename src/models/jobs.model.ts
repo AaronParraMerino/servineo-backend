@@ -52,5 +52,5 @@ JobSchema.methods.toJSON = function () {
   return job;
 };
 
-export const Job = mongoose.model<IJob>('Job', JobSchema);
+export const Job = mongoose.models.Job || mongoose.model<IJob>('Job', JobSchema);
 export default Job;

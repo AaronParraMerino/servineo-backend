@@ -32,6 +32,8 @@ import clienteRouter from '../src/api/routes/userManagement/cliente.routes';
 import obtenerContrasenaRouter from '../src/api/routes/userManagement/obtener.routes';
 import portfolioRoutes from '../src/routes/portfolio.routes';
 import routerUser from './api/routes/user.routes';
+import forumRoutes from './api/routes/forum.routes';
+import faqRoutes from './api/routes/faq.routes';
 
 
 
@@ -90,6 +92,8 @@ app.use('/auth', githubAuthRouter);
 app.use('/auth', discordRoutes);
 app.use('/api/controlC/cliente', clienteRouter);
 app.use('/api/user',routerUser);
+app.use('/api', forumRoutes);
+app.use('/api', faqRoutes);
 export const registerRoutes = (app: any) => {
   app.use('/devices', deviceRouter);
 };

@@ -7,4 +7,5 @@ export interface JobOfferRepository {
   findByFixerId(fixerId: string): Promise<IJobOffer[]>;
   update(offerId: string, data: Partial<CreateOfferInput>): Promise<IJobOffer | null>;
   delete(offerId: string): Promise<void>;
+
 }

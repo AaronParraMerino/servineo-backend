@@ -53,7 +53,7 @@ const offerSchema = new Schema(
       index: true,
     },
     contactPhone: { type: String, required: true },
-    rating: { type: Number, required: true, min: 1.0, max: 5.9 },
+    rating: { type: Number, required: true, min: 1, max: 5 },
   },
   {
     timestamps: true,

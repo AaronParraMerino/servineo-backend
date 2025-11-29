@@ -1,8 +1,10 @@
 import { Router } from "express";
-import {  listUsers } from "../controllers/user.controller";
+import {  listUsers , getUserById} from "../controllers/user.controller";
+import { postDescriptionFixer } from "../../controllers/user.controller";
+import router from "./health.routes";
+const routerUser = Router();
 
-const router = Router();
-
-router.get("/users", listUsers);
-
-export default router;
+routerUser.get("/users", listUsers);
+routerUser.get("/:id", getUserById); 
+routerUser.post('/:id/description', postDescriptionFixer);
+export default routerUser;

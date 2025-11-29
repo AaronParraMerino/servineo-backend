@@ -96,10 +96,11 @@ export const getOffersFiltered = async (options?: OfferFilterOptions) => {
     }
   }
 
-  // Filtrado por rating: comparación exacta con decimales (1.0..5.9)
+  // Filtrado por rating: si se pasa rating (1..5) aplicamos >=n AND < n+1
   if (options && typeof options.rating === 'number' && !isNaN(options.rating)) {
-    if (options.rating >= 1.0 && options.rating <= 5.9) {
-      filterQuery = FilterCommon.combine(filterQuery, { rating: options.rating });
+    const n = Math.floor(options.rating);
+    if (n >= 1 && n <= 5) {
+      filterQuery = FilterCommon.combine(filterQuery, { rating: { $gte: n, $lt: n + 1 } });
     }
   }
 

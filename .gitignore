@@ -56,3 +56,7 @@ coverage/
 
 # Vercel local build cache
 .vercel/
+.vercel
+
+serviceAccountKey.json
+firebase-service-account.json

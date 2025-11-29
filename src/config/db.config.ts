@@ -1,14 +1,31 @@
 // src/config/db.config.ts
+import 'dotenv/config';
 import mongoose from 'mongoose';
 import { appConfig } from './app.config';
 
+let isConnected = false;
+
 export const connectDatabase = async (): Promise<void> => {
+  // Si ya está conectado, no hacer nada
+  if (isConnected) {
+    return;
+  }
+
   try {
-    const conn = await mongoose.connect(appConfig.mongoUri);
+    console.log('🔌 Conectando a MongoDB...');
+    const conn = await mongoose.connect(appConfig.mongoUri, {
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
+    });
+    isConnected = true;
     console.log(`✅ MongoDB conectado: ${conn.connection.host}`);
   } catch (error) {
-    console.error('❌ Error conectando a MongoDB:', error);
-    process.exit(1);
+    isConnected = false;
+    console.error('❌ Error conectando a MongoDB:');
+    if (error instanceof Error) {
+      console.error('Message:', error.message);
+    }
+    throw error;
   }
 };
 

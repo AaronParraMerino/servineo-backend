@@ -2,7 +2,7 @@
 {
   "compilerOptions": {
     "target": "ES6",
-    "module": "commonjs",           // ← Cambiar esto
+    "module": "commonjs",           
     "rootDir": "./src",
     "moduleResolution": "node",
     "resolveJsonModule": true,

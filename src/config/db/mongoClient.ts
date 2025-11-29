@@ -41,3 +41,8 @@ export async function closeDB(): Promise<void> {
     db = null;
   }
 }
+
+export const getDB = () => {
+  if (!db) throw new Error('Database not connected');
+  return db;
+};

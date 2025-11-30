@@ -50,11 +50,10 @@ export async function createForumController(req: Request, res: Response) {
     }
 
     const { titulo, descripcion, categoria } = req.body;
-
-    if (!titulo || !descripcion) {
+    if (!titulo || !descripcion || !categoria) {
       return res
         .status(400)
-        .json({ error: 'Missing required fields: titulo, descripcion' });
+        .json({ error: 'Missing required fields: titulo, descripcion, categoria' });
     }
 
     const forum = await forumService.createForum({

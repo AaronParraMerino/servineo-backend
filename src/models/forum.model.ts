@@ -10,7 +10,7 @@ export interface IForum extends Document {
 
   titulo: string;
   descripcion: string;
-  categoria?: ForumCategory;
+  categoria: ForumCategory;
 
   commentsCount: number;
   isLocked: boolean;
@@ -53,7 +53,7 @@ const forumSchema = new Schema<IForum>(
     categoria: {
       type: String,
       enum: ['problemas', 'servicios', 'consejos', 'general'],
-      default: 'problemas',
+      required: true,
     },
 
     commentsCount: {

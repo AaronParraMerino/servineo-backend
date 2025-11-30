@@ -1,5 +1,5 @@
 import { Types } from 'mongoose';
-import { Forum, IForum } from '../models/forum.model';
+import { Forum, IForum, ForumCategory } from '../models/forum.model';
 import { ForumComment, IForumComment } from '../models/forumComment.model';
 
 function toObjectId(id: string | Types.ObjectId): Types.ObjectId {
@@ -27,7 +27,7 @@ export async function createForum(data: {
   authorRole: 'requester' | 'fixer' | 'visitor' | 'admin';
   titulo: string;
   descripcion: string;
-  categoria?: string;
+  categoria: ForumCategory;
 }): Promise<IForum> {
   const forum = await Forum.create({
     authorId: toObjectId(data.authorId),

@@ -11,8 +11,6 @@ import fixerRoutes from './api/routes/fixer.routes';
 import activityRoutes from './api/routes/activities.routes';
 import jobsRoutes from './api/routes/jobs.routes';
 
-import forumRoutes from './api/routes/forum.routes';
-import faqRoutes from './api/routes/faq.routes';
 
 import searchRoutes from './api/routes/search.routes';
 
@@ -65,8 +63,6 @@ import faqRoutes from './api/routes/faq.routes';
 
 
 
-const app = express();
-
 app.use(
   cors({
     origin: [
@@ -100,7 +96,7 @@ app.use('/api', searchRoutes);
 app.use('/api', forumRoutes);
 app.use('/api', faqRoutes);
 
-app.use('/api', captchaRoutes);
+app.use('/', captchaRoutes);
 
 
 app.use('/api', CardsRoutes);

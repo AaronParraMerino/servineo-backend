@@ -1,21 +1,22 @@
 import { Router } from 'express';
 import * as ForumController from '../controllers/forum.controller';
+import { verifyJWT } from '../controllers/userManagement/google.controller'; // 👈 importa el middleware
 
 const router = Router();
 
-// Lista de publicaciones del foro
+// Lista de publicaciones del foro (pública)
 router.get('/forums', ForumController.listForumsController);
 
 // Crear publicación (requiere usuario autenticado)
-router.post('/forums', ForumController.createForumController);
+router.post('/forums', verifyJWT, ForumController.createForumController);
 
-// Detalle de una publicación + comentarios
+// Detalle de una publicación + comentarios (pública)
 router.get('/forums/:id', ForumController.getForumWithCommentsController);
 
-// Agregar comentario a una publicación (requiere usuario autenticado)
-router.post('/forums/:id/comments', ForumController.addCommentController);
+// Agregar comentario (requiere usuario autenticado)
+router.post('/forums/:id/comments', verifyJWT, ForumController.addCommentController);
 
-// Moderación básica: bloquear/desbloquear
-router.patch('/forums/:id/lock', ForumController.lockForumController);
+// Bloquear/desbloquear (también debería ir protegido)
+router.patch('/forums/:id/lock', verifyJWT, ForumController.lockForumController);
 
 export default router;

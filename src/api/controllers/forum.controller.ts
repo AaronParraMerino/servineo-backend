@@ -9,18 +9,38 @@ interface AuthUser {
 }
 
 function getAuthUser(req: Request): AuthUser | null {
-  // Ajusta esto a tu sistema real de autenticación
   const anyReq = req as any;
 
   if (anyReq.user) {
+    const raw = anyReq.user;
+
+    // Soportar distintas formas de id viniendo del JWT
+    const id =
+      raw._id ??
+      raw.id ??        // típico cuando se firma como { id: ... }
+      raw.userId ??    // por si algún login usa userId
+      raw.sub;         // por si viene de OAuth/JWT estándar
+
+    // Nombre: toma lo que haya
+    const name = raw.name ?? raw.username ?? raw.email;
+
+    // Rol: si no viene en el token, usamos requester por defecto
+    const role: AuthUser["role"] =
+      raw.role ?? "requester";
+
+    if (!id || !name) {
+      // Si aún así no hay datos mínimos, lo tratamos como no autenticado
+      return null;
+    }
+
     return {
-      _id: anyReq.user._id,
-      name: anyReq.user.name,
-      role: anyReq.user.role,
+      _id: id,
+      name,
+      role,
     };
   }
 
-  // Fallback para pruebas (NO usar en producción real)
+  // Fallback para pruebas con body manual (si quieres lo puedes dejar o borrar)
   if (req.body.authorId && req.body.authorName && req.body.authorRole) {
     return {
       _id: req.body.authorId,
@@ -31,6 +51,7 @@ function getAuthUser(req: Request): AuthUser | null {
 
   return null;
 }
+
 
 export async function listForumsController(req: Request, res: Response) {
   try {

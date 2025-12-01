@@ -21,28 +21,28 @@ export async function listForums(): Promise<IForum[]> {
 /**
  * Crea una nueva publicación de foro
  */
-export async function createForum(data: {
-  authorId: string | Types.ObjectId;
-  authorName: string;
-  authorRole: 'requester' | 'fixer' | 'visitor' | 'admin';
-  titulo: string;
-  descripcion: string;
-  categoria: ForumCategory;
-}): Promise<IForum> {
-  const forum = await Forum.create({
-    authorId: toObjectId(data.authorId),
-    authorName: data.authorName,
-    authorRole: data.authorRole,
-    titulo: data.titulo,
-    descripcion: data.descripcion,
-    categoria: data.categoria,
-    commentsCount: 0,
-    isLocked: false,
-    lastActivityAt: new Date(),
-  });
+// src/api/services/forum.service.ts
+export async function createForum(data: any) {
+  try {
+    const { titulo, descripcion, categoria, authorId, authorRole, authorName } =
+      data;
 
-  return forum;
+    const newForum = new Forum({
+      titulo,
+      descripcion,
+      categoria,
+      authorRole,
+      authorName,
+      authorId,
+    });
+
+    return await newForum.save();
+  } catch (error) {
+    console.error("Error in createForum service:", error);
+    throw new Error(String(error));
+  }
 }
+
 
 /**
  * Obtiene una publicación y sus comentarios

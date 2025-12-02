@@ -1,27 +1,45 @@
 import Stripe from "stripe";
+import { Request, Response } from "express";
 import { Payment } from "../../models/payment.model";
-import  { Card } from "../../models/card.model";
+import { Card } from "../../models/card.model";
 import { User } from "../../models/userPayment.model";
-import { Jobs } from "../../models/jobsPayment.model";
-import 'dotenv/config';
+import Job from "../../models/jobPayment.model";
+import "dotenv/config";
 
 if (!process.env.STRIPE_SECRET_KEY) {
   console.error("❌ ERROR: Falta STRIPE_SECRET_KEY en el archivo .env");
   process.exit(1);
 }
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: "2024-06-20",
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
+  apiVersion: "2025-10-29.clover",
 });
 
-export const createPayment = async (req, res) => {
+export const createPayment = async (
+  req: Request,
+  res: Response
+): Promise<Response | void> => {
   console.group("🧾 [createPayment] Nueva solicitud de pago");
   console.time("⏱ Duración total del proceso");
 
   try {
-    const { requesterId, fixerId, jobId, cardId, amount, paymentMethodId } = req.body;
+    const {
+      requesterId,
+      fixerId,
+      jobId,
+      cardId,
+      amount,
+      paymentMethodId,
+    } = req.body;
 
-    console.log("📥 Datos recibidos:", { requesterId, fixerId, jobId, cardId, amount, paymentMethodId });
+    console.log("📥 Datos recibidos:", {
+      requesterId,
+      fixerId,
+      jobId,
+      cardId,
+      amount,
+      paymentMethodId,
+    });
 
     // --- VALIDACIONES BÁSICAS ---
     if (!requesterId || !fixerId || !jobId || !amount) {
@@ -31,7 +49,9 @@ export const createPayment = async (req, res) => {
 
     if (isNaN(amount) || amount <= 0) {
       console.error("❌ El monto debe ser un número positivo");
-      return res.status(400).json({ error: "El monto debe ser un número positivo" });
+      return res
+        .status(400)
+        .json({ error: "El monto debe ser un número positivo" });
     }
 
     // --- BUSCAR USUARIOS ---
@@ -53,16 +73,21 @@ export const createPayment = async (req, res) => {
 
     if (requester.role !== "requester") {
       console.error("⚠️ El pagador no tiene rol 'requester'");
-      return res.status(400).json({ error: "El pagador debe tener rol 'requester'" });
+      return res
+        .status(400)
+        .json({ error: "El pagador debe tener rol 'requester'" });
     }
 
     if (fixer.role !== "fixer") {
       console.error("⚠️ El receptor no tiene rol 'fixer'");
-      return res.status(400).json({ error: "El receptor debe tener rol 'fixer'" });
+      return res
+        .status(400)
+        .json({ error: "El receptor debe tener rol 'fixer'" });
     }
 
     // --- CREAR CLIENTE STRIPE SI NO EXISTE ---
-    let customerId = requester.stripeCustomerId;
+    let customerId = requester.stripeCustomerId as string | undefined;
+
     if (!customerId) {
       console.log("🆕 Creando nuevo cliente Stripe...");
       const customer = await stripe.customers.create({
@@ -78,7 +103,8 @@ export const createPayment = async (req, res) => {
     }
 
     // --- OBTENER MÉTODO DE PAGO ---
-    let stripePaymentMethodId;
+    let stripePaymentMethodId: string | undefined;
+
     if (cardId) {
       console.log("💳 Buscando tarjeta por ID...");
       const card = await Card.findById(cardId);
@@ -88,7 +114,9 @@ export const createPayment = async (req, res) => {
       }
       if (card.userId.toString() !== requesterId.toString()) {
         console.error("⚠️ La tarjeta no pertenece al requester");
-        return res.status(400).json({ error: "La tarjeta no pertenece al requester" });
+        return res
+          .status(400)
+          .json({ error: "La tarjeta no pertenece al requester" });
       }
       stripePaymentMethodId = card.stripePaymentMethodId;
     } else if (paymentMethodId) {
@@ -96,12 +124,15 @@ export const createPayment = async (req, res) => {
       console.log("💳 Usando paymentMethodId temporal del frontend");
     } else {
       console.error("❌ No se proporcionó tarjeta ni paymentMethod");
-      return res.status(400).json({ error: "No se proporcionó tarjeta ni PaymentMethod" });
+      return res
+        .status(400)
+        .json({ error: "No se proporcionó tarjeta ni PaymentMethod" });
     }
 
     // --- CREAR INTENTO DE PAGO ---
     console.log("🚀 Creando PaymentIntent en Stripe...");
-    let paymentIntent;
+
+    let paymentIntent: Stripe.PaymentIntent | null = null;
 
     try {
       paymentIntent = await stripe.paymentIntents.create({
@@ -112,17 +143,36 @@ export const createPayment = async (req, res) => {
         confirm: true,
         automatic_payment_methods: { enabled: true, allow_redirects: "never" },
       });
-      console.log("✅ PaymentIntent creado:", paymentIntent.id, "Estado:", paymentIntent.status);
-    } catch (stripeError) {
+
+      console.log(
+        "✅ PaymentIntent creado:",
+        paymentIntent.id,
+        "Estado:",
+        paymentIntent.status
+      );
+    } catch (stripeError: any) {
       console.error("❌ Error al crear PaymentIntent:", stripeError.message);
-      return res.status(400).json({
-        error: "Error al procesar el pago con Stripe",
+      console.timeEnd("⏱ Duración total del proceso");
+      console.groupEnd();
+      return res.status(500).json({
+        message: "Error al crear PaymentIntent",
         details: stripeError.message,
+      });
+    }
+
+    // Extra seguridad para TypeScript
+    if (!paymentIntent) {
+      console.error("❌ PaymentIntent no se creó correctamente");
+      console.timeEnd("⏱ Duración total del proceso");
+      console.groupEnd();
+      return res.status(500).json({
+        message: "Error interno al crear el pago",
       });
     }
 
     // --- GUARDAR PAGO EN MONGODB ---
     console.log("🗃️ Guardando información del pago en MongoDB...");
+
     const paymentData = await Payment.create({
       requesterId,
       fixerId,
@@ -134,16 +184,23 @@ export const createPayment = async (req, res) => {
       paymentIntentId: paymentIntent.id,
     });
 
-    console.log(`✅ Pago guardado correctamente con estado '${paymentData.status}'`);
+    console.log(
+      `✅ Pago guardado correctamente con estado '${paymentData.status}'`
+    );
 
     // --- ACTUALIZAR ESTADO DEL TRABAJO ---
-    const job = await Jobs.findById(jobId);
+    const job = await Job.findById(jobId);
     if (!job) {
       console.error(`⚠️ Trabajo con ID ${jobId} no encontrado`);
     } else {
-      job.status = paymentIntent.status === "succeeded" ? "Pagado" : "Pago pendiente";
+      job.status =
+        paymentIntent.status === "succeeded"
+          ? "Pagado"
+          : "Pago pendiente";
       await job.save();
-      console.log(`🧱 Estado del trabajo '${job.title}' actualizado a '${job.status}'`);
+      console.log(
+        `🧱 Estado del trabajo '${job.title}' actualizado a '${job.status}'`
+      );
     }
 
     console.timeEnd("⏱ Duración total del proceso");
@@ -153,8 +210,7 @@ export const createPayment = async (req, res) => {
       message: "✅ Pago procesado correctamente",
       payment: paymentData,
     });
-
-  } catch (error) {
+  } catch (error: any) {
     console.error("🔥 Error inesperado en createPayment:", error);
     console.timeEnd("⏱ Duración total del proceso");
     console.groupEnd();

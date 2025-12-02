@@ -80,6 +80,5 @@ const jobSchema = new Schema<IJob>(
 // 4. Creación del Modelo
 // 'models.Job' previene que Mongoose compile el modelo múltiples veces 
 // (un problema común en Next.js con hot-reloading).
-const Job = models.Job || model<IJob>('Job', jobSchema);
-
+export const Job = models.Job || model<IJob>("Job", jobSchema);
 export default Job;

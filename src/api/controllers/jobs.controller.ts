@@ -1,6 +1,8 @@
-import { Request, Response } from 'express';
+import { Request, Response } from "express"
 import { Job } from '../../models/jobs.model';
 import { User } from '../../models/user.model';
+
+import { Offer } from '../../models/offer.model';
 
 export async function createJobController(req: Request, res: Response) {
   try {
@@ -124,3 +126,91 @@ export async function deleteJob(req: Request, res: Response) {
     res.status(500).json({ error: 'Error deleting Job' });
   }
 }
+
+export const listJobs = async (req: Request, res: Response) => {
+  try {
+    const {
+      sortBy = "recent",
+      page = "1",
+      limit = "10",
+      search = "",
+      category,
+    } = req.query as {
+      sortBy?: string;
+      page?: string;
+      limit?: string;
+      search?: string;
+      category?: string;
+    };
+
+    const pageNum = Math.max(parseInt(page || "1", 10), 1);
+    const limitNum = Math.max(parseInt(limit || "10", 10), 1);
+
+    const query: any = {};
+
+    // Filtro de búsqueda básico por título/descripcion
+    if (search && search.trim()) {
+      query.$or = [
+        { title: { $regex: search, $options: "i" } },
+        { description: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    // Si tu modelo tiene campo category, filtramos
+    if (category && category !== "Todos") {
+      query.category = category;
+    }
+
+    const sort: any = {};
+    if (sortBy === "recent") {
+      sort.createdAt = -1;
+    } else if (sortBy === "oldest") {
+      sort.createdAt = 1;
+    }
+
+    // Cambia Offer por Job si corresponde
+    const [items, total] = await Promise.all([
+      Offer.find(query)
+        .sort(sort)
+        .skip((pageNum - 1) * limitNum)
+        .limit(limitNum)
+        .lean(),
+      Offer.countDocuments(query),
+    ]);
+
+    return res.json({
+      items,
+      total,
+      page: pageNum,
+      limit: limitNum,
+      totalPages: Math.ceil(total / limitNum),
+    });
+  } catch (err: any) {
+    console.error("❌ Error listando jobs:", err);
+    return res.status(500).json({
+      message: "Error al obtener ofertas de trabajo",
+      error: err.message,
+    });
+  }
+};
+
+// Si ya tienes getOfferById en este archivo, déjalo como está.
+// Si no, algo así:
+export const getOfferById = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const offer = await Offer.findById(id);
+
+    if (!offer) {
+      return res.status(404).json({ message: "Oferta no encontrada" });
+    }
+
+    return res.json(offer);
+  } catch (err: any) {
+    console.error("❌ Error obteniendo oferta:", err);
+    return res.status(500).json({
+      message: "Error al obtener oferta",
+      error: err.message,
+    });
+  }
+};

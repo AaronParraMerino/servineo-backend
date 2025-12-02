@@ -47,7 +47,9 @@ app.use(
       'https://devmasters-servineo-frontend-zk3q.vercel.app',
       'http://localhost:8080',
       'http://localhost:8081',
-      'http://localhost:3000'
+      'http://localhost:3000',
+      'https://frontend-servineo.vercel.app',
+      'https://servineo-frontend.vercel.app',
     ],
     credentials: true,
   }),

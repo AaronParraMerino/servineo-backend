@@ -5,7 +5,7 @@ import { Comision } from "../../models/historycomission.model";
 import { Wallet } from "../../models/wallet.model";
 import Job from "../../models/jobPayment.model";
 import { User } from "../../models/userPayment.model"; 
-import Jobspay from "../../models/jobsPayment.model"; 
+//import { Jobspay } from "../../models/jobsPayment.model";
 
 const MAX_ATTEMPTS = 3;
 const LOCK_MINUTES = 10;
@@ -160,12 +160,14 @@ export async function confirmPaymentLab(req: Request, res: Response) {
     // ============================================
     let jobActualizado = false;
     
-    if (confirmed.jobId) {
+    if (confirmedPayment.jobId) {
       try {
-        console.log(`🔄 Actualizando status del job ${confirmed.jobId} a "Pagado"`);
+        console.log(
+          `🔄 Actualizando status del job ${confirmedPayment.jobId} a "Pagado"`
+        );
         
-        const jobUpdated = await jobsPays.findByIdAndUpdate(
-          confirmed.jobId,
+        const jobUpdated = await Job.findByIdAndUpdate(
+          confirmedPayment.jobId,
           { 
             $set: { 
               status: "Pagado" 
@@ -178,14 +180,21 @@ export async function confirmPaymentLab(req: Request, res: Response) {
         );
 
         if (jobUpdated) {
-          console.log(`✅ Job ${confirmed.jobId} actualizado a status "Pagado"`);
+          console.log(
+            `✅ Job ${confirmedPayment.jobId} actualizado a status "Pagado"`
+          );
           jobActualizado = true;
         } else {
-          console.warn(`⚠️ No se encontró el job ${confirmed.jobId}`);
+          console.warn(
+            `⚠️ No se encontró el job ${confirmedPayment.jobId}`
+          );
         }
       } catch (jobError: any) {
-        console.error(`❌ Error actualizando job ${confirmed.jobId}:`, jobError);
-        // No abortamos la transacción, el pago ya se confirmó
+        console.error(
+          `❌ Error actualizando job ${confirmedPayment.jobId}:`,
+          jobError
+        );
+        // No abortamos la transacción: el pago ya se confirmó
       }
     } else {
       console.warn(`⚠️ El pago ${id} no tiene jobId asociado`);
@@ -199,41 +208,53 @@ export async function confirmPaymentLab(req: Request, res: Response) {
     try {
       // 1. Buscar los datos usando los modelos correctos
       const [job, requester] = await Promise.all([
-        // ¡CAMBIO! Usamos Jobspay (de jobs.model.ts) para encontrar el trabajo
-        Jobspay.findById(confirmedPayment.jobId).session(session),
-        User.findById(confirmedPayment.payerId).session(session) // Usamos User (de user.model.ts)
+        // Usamos Job (de jobPayment.model.ts) para encontrar el trabajo
+        Job.findById(confirmedPayment.jobId).session(session),
+        // Usamos User (de userPayment.model.ts) para el requester/payer
+        User.findById(confirmedPayment.payerId).session(session)
       ]);
 
       if (!job || !requester) {
-        throw new Error("No se encontraron el Job (en jobspays) o el Requester (en users) para la factura.");
+        throw new Error(
+          "No se encontraron el Job (en jobs) o el Requester (en users) para la factura."
+        );
       }
 
       // 2. Calcular montos finales
       const subtotal = confirmedPayment.amount.total;
-      const commission = subtotal * (confirmedPayment.commissionRate || 0.05);
-      const iva = (subtotal + commission) * 0.13; 
+      const commission =
+        subtotal * (confirmedPayment.commissionRate || 0.05);
+      const iva = (subtotal + commission) * 0.13;
       const totalFinal = subtotal + commission + iva;
 
       // 3. Actualizar el documento 'Payment' con los datos de la factura
-      await Payment.findByIdAndUpdate(confirmedPayment._id, {
-        $set: {
-          requesterName: requester.name, // SÍ existe en user.model.ts
-          companyName: (requester as any).companyName || "N/A", // (user.model.ts no tiene companyName)
-          taxId: (requester as any).taxId || "N/A",             // (user.model.ts no tiene taxId)
-          jobType: job.type, 
-          jobDescription: job.description, 
-          transactionId: `CASH-${confirmedPayment._id}`, 
-          "Payment Method": "Efectivo", 
-          commission: commission,
-          iva: iva,
-          "amount.total": totalFinal 
-        }
-      }, { session });
+      await Payment.findByIdAndUpdate(
+        confirmedPayment._id,
+        {
+          $set: {
+            requesterName: requester.name,
+            companyName: (requester as any).companyName || "N/A",
+            taxId: (requester as any).taxId || "N/A",
+            jobType: (job as any).type,
+            jobDescription: (job as any).description,
+            transactionId: `CASH-${confirmedPayment._id}`,
+            "Payment Method": "Efectivo",
+            commission: commission,
+            iva: iva,
+            "amount.total": totalFinal,
+          },
+        },
+        { session }
+      );
 
-      console.log(`✅ Datos de factura añadidos al pago ${confirmedPayment._id}`);
-
+      console.log(
+        `✅ Datos de factura añadidos al pago ${confirmedPayment._id}`
+      );
     } catch (invoiceError: any) {
-      console.error("❌ Error en trigger de facturación:", invoiceError.message);
+      console.error(
+        "❌ Error en trigger de facturación:",
+        invoiceError.message
+      );
     }
     // ============================================
     // FIN DE LÓGICA DE FACTURACIÓN
@@ -241,48 +262,55 @@ export async function confirmPaymentLab(req: Request, res: Response) {
 
 
     // ============================================
-    // 🔥 TRIGGER: ACTUALIZAR 'jobspays' (AÑADIDO)
+    // 🔥 TRIGGER: ACTUALIZAR 'jobs' (ANTES 'jobspays')
     // ============================================
     try {
-      console.log(`🧾 Actualizando estado en 'jobspays' para el jobId: ${confirmedPayment.jobId}`);
-      
-      // Busca el job en la colección 'jobspays' (usando el modelo Jobspay)
-      await Jobspay.findByIdAndUpdate( 
+      console.log(
+        `🧾 Actualizando estado en 'jobs' para el jobId: ${confirmedPayment.jobId}`
+      );
+
+      // Antes: Jobspay.findByIdAndUpdate(...)
+      await Job.findByIdAndUpdate(
         confirmedPayment.jobId,
-        { $set: { status: "Pagado" } }, // Actualiza el estado a "Pagado"
+        { $set: { status: "Pagado" } },
         { session }
       );
-      console.log(`✅ 'jobspays' actualizado a "Pagado".`);
+
+      console.log(`✅ 'jobs' actualizado a "Pagado".`);
     } catch (jobspayError: any) {
-      console.error("❌ Error al actualizar 'jobspays':", jobspayError.message);
+      console.error(
+        "❌ Error al actualizar 'jobs':",
+        jobspayError.message
+      );
     }
     // ============================================
-    // FIN DEL TRIGGER 'jobspays'
+    // FIN DEL TRIGGER 'jobs'
     // ============================================
 
 
     // ============================================
     // 🔥 TRIGGER: CREAR COMISIÓN AUTOMÁTICAMENTE
+    // (esto lo dejo igual que lo tenías)
     // ============================================
     console.log(`💰 Activando trigger de comisión para pago ${id}`);
     
     try {
-      // Buscar la wallet del fixer
-      const fixerWallet = await Wallet.findOne({ 
-        users_id: confirmedPayment.fixerId 
+      const fixerWallet = await Wallet.findOne({
+        users_id: confirmedPayment.fixerId,
       }).session(session);
 
       if (!fixerWallet) {
-        console.warn(`❌ No se encontró wallet para fixer: ${confirmedPayment.fixerId}`);
+        console.warn(
+          `❌ No se encontró wallet para fixer: ${confirmedPayment.fixerId}`
+        );
       }
 
-      // Calcular comisión
       const comisionRate = confirmedPayment.commissionRate || 0.05;
-      const montoServicio = confirmedPayment.amount.total; 
+      const montoServicio = confirmedPayment.amount.total;
       const comisionMonto = montoServicio * comisionRate;
 
       let estadoComision = "completada";
-      let motivoFallo = null;
+      let motivoFallo: string | null = null;
 
       if (fixerWallet && fixerWallet.balance >= comisionMonto) {
         await Wallet.findByIdAndUpdate(
@@ -290,51 +318,63 @@ export async function confirmPaymentLab(req: Request, res: Response) {
           { $inc: { balance: -comisionMonto } },
           { session }
         );
-        console.log(`✅ Comisión de ${comisionMonto} Bs descontada del wallet`);
+        console.log(
+          `✅ Comisión de ${comisionMonto} Bs descontada del wallet`
+        );
       } else {
         estadoComision = "fallida";
-        motivoFallo = fixerWallet 
+        motivoFallo = fixerWallet
           ? `Fondos insuficientes: ${fixerWallet.balance} Bs < ${comisionMonto} Bs`
           : "Wallet del fixer no encontrado";
         console.warn(`❌ ${motivoFallo}`);
       }
 
-      await Comision.create([{
-        wallets_id: fixerWallet?._id || confirmedPayment.fixerId,
-        payments_id: confirmedPayment._id,
-        fixer_id: confirmedPayment.fixerId,
-        comision: comisionMonto,
-        monto_servicio: montoServicio,
-        tipo_servicio: "Servicio general", 
-        estado: estadoComision,
-        motivo_fallo: motivoFallo,
-        fecha_completada: estadoComision === "completada" ? new Date() : undefined
-      }], { session });
+      await Comision.create(
+        [
+          {
+            wallets_id: fixerWallet?._id || confirmedPayment.fixerId,
+            payments_id: confirmedPayment._id,
+            fixer_id: confirmedPayment.fixerId,
+            comision: comisionMonto,
+            monto_servicio: montoServicio,
+            tipo_servicio: "Servicio general",
+            estado: estadoComision,
+            motivo_fallo: motivoFallo,
+            fecha_completada:
+              estadoComision === "completada" ? new Date() : undefined,
+          },
+        ],
+        { session }
+      );
 
-      console.log(`✅ Comisión registrada en historial: ${estadoComision}`);
-
+      console.log(
+        `✅ Comisión registrada en historial: ${estadoComision}`
+      );
     } catch (error: any) {
       console.error("❌ Error en trigger de comisión:", error);
     }
 
     await session.commitTransaction();
 
-    console.info(`Payment ${id}: confirmado exitosamente + triggers ejecutados`);
+    console.info(
+      `Payment ${id}: confirmado exitosamente + triggers ejecutados`
+    );
 
     // Devolvemos el documento 'Payment' completo y actualizado
     const finalPaymentDoc = await Payment.findById(id).lean();
+    const src: any = finalPaymentDoc || confirmedPayment;
 
     return res.json({
       message: "pago confirmado exitosamente",
       data: {
-        id: String(confirmed._id),
-        total: confirmed.amount.total,
-        status: confirmed.status,
-        paidAt: confirmed.paymentDate,
+        id: String(src._id),
+        total: src.amount.total,
+        status: src.status,
+        paidAt: src.paymentDate,
         comisionProcesada: true,
-        jobActualizado: jobActualizado, // ← NUEVO: Indicar si se actualizó el job
-        jobId: confirmed.jobId || null
-      }
+        jobActualizado: jobActualizado,
+        jobId: src.jobId || null,
+      },
     });
 
   } catch (e: any) {

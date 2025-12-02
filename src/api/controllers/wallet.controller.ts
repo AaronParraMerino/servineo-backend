@@ -1,7 +1,8 @@
 import Stripe from 'stripe';
+import { Request, Response } from "express";
 import { Wallet } from '../../models/wallet.model';
-import User from '../../models/userPayment.model';
-import Recharge from '../../models/walletRecharge.model';
+import { User } from "../../models/userPayment.model";
+import { Recharge } from "../../models/walletRecharge.model";
 
 import 'dotenv/config';
 
@@ -13,7 +14,10 @@ if (!process.env.STRIPE_SECRET_KEY) {
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 // 💳 Procesar pago y actualizar wallet
-export const rechargeWallet = async (req, res) => {
+export const rechargeWallet = async (
+  req: Request,
+  res: Response
+): Promise<Response | void> => {
   try {
     console.log('🔹 Entrada a rechargeWallet');
 
@@ -88,19 +92,15 @@ export const rechargeWallet = async (req, res) => {
         wallet,
         recharge: newRecharge, // opcional, para devolver el registro
       });
-    } catch (rechargeError) {
-      console.error('❌ Error al guardar el registro de recarga:', rechargeError);
-      // No revertimos el balance, pero notificamos el error
+    } catch (rechargeError: any) {
       return res.status(500).json({
-        message: 'Recarga procesada pero fallo al registrar la transacción',
+        message: "Error al procesar la recarga",
         error: rechargeError.message,
-        wallet,
       });
     }
 
     
-  } catch (error) {
-    console.error('❌ Error al recargar wallet:', error);
+  } catch (error: any) {
     res.status(500).json({ message: 'Error interno', error: error.message });
   }
 };

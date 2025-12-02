@@ -13,3 +13,5 @@ const cardSchema = new mongoose.Schema({
 });
 
 export const User = mongoose.models.User || mongoose.model("cards", cardSchema);
+export const Card =
+  mongoose.models.Card || mongoose.model("Card", cardSchema);

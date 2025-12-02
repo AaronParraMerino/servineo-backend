@@ -1,4 +1,5 @@
 //pasar
+import { Request, Response } from "express";
 import PaymentIntent from '../../models/PaymentIntent.model';
 import ProviderPaymentMethod from '../../models/ProviderPaymentMethod.model';
 
@@ -13,7 +14,10 @@ function generateRef() {
   return s;
 }
 
-export async function createOrReuseIntent(req, res) {
+export async function createOrReuseIntent(
+  req: Request,
+  res: Response
+){
   try {
     console.log('📩 Body recibido:', req.body);
 

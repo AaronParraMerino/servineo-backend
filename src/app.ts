@@ -44,6 +44,7 @@ const app = express();
 app.use(
   cors({
     origin: [
+      'https://servineo-backend-70su.onrender.com',
       'https://devmasters-servineo-frontend-zk3q.vercel.app',
       'http://localhost:8080',
       'http://localhost:8081',

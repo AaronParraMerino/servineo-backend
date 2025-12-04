@@ -1,9 +1,10 @@
 import jwt from "jsonwebtoken";
 import { Request, Response } from "express";
+import { ObjectId } from "mongodb";
 import { generarToken } from "../../../utils/generadorToken";
 import { getGitHubUser, findUserByEmail, createUser } from "../../../services/userManagement/github.service";
 import clientPromise from "../../../config/db/mongodb";
-import { ObjectId } from "mongodb";
+import * as activityService from '../../../services/activities.service';
 
 export async function githubAuth(req: Request, res: Response) {
   const { code, state } = req.query;
@@ -50,7 +51,7 @@ export async function githubAuth(req: Request, res: Response) {
     const githubUser = await getGitHubUser(accessToken);
     if (!githubUser) throw new Error("No se pudo obtener usuario GitHub");
 
- 
+
     if (mode === "link" && token) {
       console.log("🔗 Modo vinculación detectado, validando token JWT...");
 
@@ -99,7 +100,58 @@ export async function githubAuth(req: Request, res: Response) {
       `);
     }
 
- 
+    if (mode === "login-only") {
+      console.log("🔐 Modo LOGIN-ONLY detectado");
+
+      const dbUser = await findUserByEmail(githubUser.email);
+
+      if (!dbUser) {
+        // Usuario NO existe → avisamos al frontend de login
+        return res.send(`
+          <script>
+            window.opener.postMessage({
+              type: 'GITHUB_AUTH_ERROR',
+              message: 'Usuario no registrado. Por favor regístrate.'
+            }, '${FRONTEND_URL}');
+            window.close();
+          </script>
+        `);
+      }
+
+      const sessionToken = generarToken(
+        dbUser._id.toHexString(),
+        dbUser.name,
+        dbUser.email,
+        dbUser.role
+      );
+
+      await activityService.createSimpleActivity({
+        userId: dbUser._id,
+        date: new Date(),
+        role: dbUser.role,
+        type: "session_start",
+        metadata: { resumed: false },
+      });
+
+      return res.send(`
+        <script>
+          window.opener.postMessage({
+            type: 'GITHUB_AUTH_SUCCESS',
+            token: '${sessionToken}',
+            isFirstTime: false,
+            user: ${JSON.stringify({
+              _id: dbUser._id.toHexString(),
+              name: dbUser.name,
+              email: dbUser.email,
+              role: dbUser.role,
+              photo: dbUser.url_photo || null,
+            })}
+          }, '${FRONTEND_URL}');
+          window.close();
+        </script>
+      `);
+    }
+    
     let dbUser = await findUserByEmail(githubUser.email);
     let isFirstTime = false;
 
@@ -111,8 +163,17 @@ export async function githubAuth(req: Request, res: Response) {
     const sessionToken = generarToken(
       dbUser._id.toHexString(),
       dbUser.name,
-      dbUser.email
+      dbUser.email,
+      dbUser.role
     );
+
+    await activityService.createSimpleActivity({
+      userId: dbUser._id,
+      date: new Date(),
+      role: dbUser.role,
+      type: "session_start",
+      metadata: { resumed: false },
+    });
 
     return res.send(`
   <script>
@@ -121,9 +182,10 @@ export async function githubAuth(req: Request, res: Response) {
         token: '${sessionToken}',
         isFirstTime: ${isFirstTime},
         user: ${JSON.stringify({
-          id: dbUser._id.toHexString(),
+          _id: dbUser._id.toHexString(),
           name: dbUser.name,
           email: dbUser.email,
+          role: dbUser.role,
           photo: dbUser.url_photo || null,
         })}
       }, '${FRONTEND_URL}');

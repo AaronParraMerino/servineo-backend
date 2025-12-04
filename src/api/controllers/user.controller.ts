@@ -1,15 +1,14 @@
-import { Request, Response } from "express";
-import { User } from "../../models/userPayment.model";
+import { User } from '../../models/userPayment.model';
+import { Request, Response } from 'express';
 
-// GET /users
-
-export const listUsers = async (_req: Request, res: Response): Promise<void> => {
+// Listar todos los usuarios
+export const listUsers = async (req: Request, res: Response) => {
   try {
     const users = await User.find();
     res.status(200).json(users);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: 'Internal server error' });
   }
 };
 

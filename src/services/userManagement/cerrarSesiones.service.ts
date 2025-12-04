@@ -1,6 +1,7 @@
 import { connectDB } from "../../config/db/mongoClient";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { ObjectId } from "mongodb";
+import * as activityService from '../../services/activities.service';
 
 const JWT_SECRET = process.env.JWT_SECRET || "servineosecretkey";
 
@@ -21,6 +22,14 @@ export const logoutAllService = async (token: string) => {
   );
 
   if (result.matchedCount === 0) throw new Error("Usuario no encontrado");
+
+  await activityService.createSimpleActivity({
+    userId: usuario._id,
+    role: usuario.role,
+    type: "session_end",
+    metadata: { reason: "logout" }
+  }
+  );
 
   return {
     success: true,

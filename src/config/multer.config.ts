@@ -1,8 +1,10 @@
 import multer from 'multer';
+import type { Request } from 'express';
 
 const storage = multer.memoryStorage();
 
-const fileFilter = (req: any, file: Express.Multer.File, cb: any) => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const fileFilter = (req: Request, file: Express.Multer.File, cb: any) => {
   if (file.mimetype.startsWith('image/')) {
     cb(null, true);
   } else {

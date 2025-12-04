@@ -102,7 +102,7 @@ export async function discordAuth(req: Request, res: Response) {
       dbUser._id.toHexString(),
       dbUser.name,
       dbUser.email,
-      dbUser.url_photo
+      dbUser.role
     );
 
     return res.send(`
@@ -112,7 +112,7 @@ export async function discordAuth(req: Request, res: Response) {
           token: '${sessionToken}',
           isFirstTime: ${isFirstTime},
           user: ${JSON.stringify({
-            id: dbUser._id.toHexString(),
+            _id: dbUser._id.toHexString(),
             name: dbUser.name,
             email: dbUser.email,
             photo: dbUser.url_photo || null,

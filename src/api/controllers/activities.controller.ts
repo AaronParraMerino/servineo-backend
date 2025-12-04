@@ -36,6 +36,30 @@ export async function createActivityController(req: Request, res: Response) {
   }
 }
 
+export async function createSimpleActivity(req: Request, res: Response) {
+  try {
+    const { userId, type, metadata, date, role } = req.body;
+
+    if (!userId || !type || !role) {
+      return res.status(400).json({ error: 'Missing required fields: userId, type, role' });
+    }
+
+    await activityService.createSimpleActivity({
+      userId,
+      type,
+      metadata: metadata || {},
+      date,
+      role,
+    });
+
+    res.status(200);
+  } catch (error) {
+    const { type } = req.body
+    console.log(`Error creating ${type} Activity:`, error);
+    res.status(500).json({ error: `Error creating ${type} Activity` });
+  }
+}
+
 export async function getActivities(req: Request, res: Response) {
   try {
     const activities = await activityService.getActivities();

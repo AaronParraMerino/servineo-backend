@@ -14,6 +14,7 @@ import multer from 'multer';
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   fileFilter: (req: any, file: any, cb: any) => {
     const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
     if (allowed.includes(file.mimetype)) {
@@ -35,8 +36,10 @@ export const updateProfilePhoto = async (req: Request, res: Response) => {
 
     await setProfilePhotoUrl(userId, photoUrl);
     res.json({ success: true, message: 'Foto de perfil actualizada', photoUrl });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch (error) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const message = (error as any).message || 'Error desconocido';
+    res.status(500).json({ error: message });
   }
 };
 
@@ -50,8 +53,10 @@ export const getMyProfilePhoto = async (req: Request, res: Response) => {
 
     const photoUrl = await getProfilePhotoUrl(userId);
     res.json({ photoUrl });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch (error) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const message = (error as any).message || 'Error desconocido';
+    res.status(500).json({ error: message });
   }
 };
 
@@ -60,6 +65,7 @@ export const uploadJobOfferPhoto = [
   upload.single('photo'),
   async (req: Request, res: Response) => {
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       if (!(req as any).file) {
         return res.status(400).json({ error: 'No se subió ningún archivo' });
       }
@@ -71,13 +77,16 @@ export const uploadJobOfferPhoto = [
         return res.status(400).json({ error: 'userId es requerido (en form-data o query)' });
       }
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const photoUrl = await addJobOfferPhoto(userId, (req as any).file);
       res.json({ success: true, photoUrl });
-    } catch (error: any) {
-      if (error.message.includes('Máximo 5')) {
-        return res.status(400).json({ error: error.message });
+    } catch (error) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const errorMessage = (error as any).message || 'Error desconocido';
+      if (errorMessage.includes('Máximo 5')) {
+        return res.status(400).json({ error: errorMessage });
       }
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: errorMessage });
     }
   },
 ];
@@ -92,8 +101,10 @@ export const getMyJobOfferPhotos = async (req: Request, res: Response) => {
 
     const photos = await getJobOfferPhotos(userId);
     res.json({ photos });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch (error) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const message = (error as any).message || 'Error desconocido';
+    res.status(500).json({ error: message });
   }
 };
 
@@ -107,7 +118,9 @@ export const removeJobOfferPhoto = async (req: Request, res: Response) => {
 
     await deleteJobOfferPhoto(userId, photoId, fileName);
     res.json({ success: true, message: 'Foto eliminada' });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch (error) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const message = (error as any).message || 'Error desconocido';
+    res.status(500).json({ error: message });
   }
 };

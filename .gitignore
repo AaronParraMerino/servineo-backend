@@ -54,6 +54,9 @@ coverage/
 *~
 *.tmp
 
+# environment
+.env*
+!.env.example
 # Vercel local build cache
 .vercel/
 .vercel

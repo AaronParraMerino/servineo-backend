@@ -2,9 +2,10 @@ import { Request, Response } from 'express';
 import { generarToken } from '../../../utils/generadorToken';
 import { checkUserExists, createManualUser, getUserById } from '../../../services/userManagement/registrarDatos.service';
 import { updateUserPhoto } from '../../../services/userManagement/fotoPerfil.service';
+import * as activityService from '../../../services/activities.service';
 
 export async function manualRegister(req: Request, res: Response) {
-  const { name, email, password } = req.body;
+  const { name, email, password, role } = req.body;
 
   if (!name || !email || !password)
     return res.status(400).json({ success: false, message: 'Faltan datos' });
@@ -16,6 +17,7 @@ export async function manualRegister(req: Request, res: Response) {
     const newUser = await createManualUser({
       name,
       email,
+      role,
       password,
       picture: req.body.picture,
     });
@@ -33,8 +35,22 @@ export async function manualRegister(req: Request, res: Response) {
         console.error('Error actualizando la foto tras registro:', err);
       }
     }
+    
+    const token = generarToken(
+      newUser._id.toString(),
+      newUser.name,
+      newUser.email,
+      newUser.role || 'requester',
+      finalPicture
+    );
 
-    const token = generarToken(newUser._id.toString(), newUser.name, newUser.email, finalPicture);
+    await activityService.createSimpleActivity({
+      userId: newUser._id,
+      date: new Date(),
+      role: newUser.role,
+      type: "session_start",
+      metadata: { resumed: false },
+    });
 
     return res.status(201).json({
       success: true,
@@ -45,7 +61,7 @@ export async function manualRegister(req: Request, res: Response) {
         name: newUser.name,
         email: newUser.email,
         picture: finalPicture,
-        role: (newUser as any).role || 'requester'
+        role: newUser.role,
       },
       token,
     });

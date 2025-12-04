@@ -3,20 +3,33 @@ import app from './app';
 import { connectDatabase } from './config/db.config';
 import { connectDB } from './config/db/mongoClient';
 import { startJobsStatusCollectorCron } from './services/jobs-status-collector.cron';
+import http from 'http';
 
-// 🚀 Función para iniciar el servidor (local)
 async function startServer() {
   try {
-    // 🔌 1️⃣ Conectamos a la base de datos antes de iniciar el servidor
     await connectDatabase();
     await connectDB();
 
-    // 🚀 2️⃣ Iniciamos el servidor Express
-    app.listen(SERVER_PORT, () => {
-      console.info(`✅ Server running on http://localhost:${SERVER_PORT}`);
+    const server = http.createServer(
+      {
+        maxHeaderSize: 131072,
+      },
+      app,
+    );
+    server.on('clientError', (err: NodeJS.ErrnoException, socket) => {
+      if ((err as any).code === 'HPE_HEADER_OVERFLOW' || err.message?.includes('431')) {
+        console.error('❌ Error: Headers demasiado grandes (431)');
+        socket.end('HTTP/1.1 431 Request Header Fields Too Large\r\n\r\n');
+      } else {
+        console.error('❌ Client error:', err);
+        socket.end('HTTP/1.1 400 Bad Request\r\n\r\n');
+      }
+    });
+    server.listen(SERVER_PORT, () => {
+      const url = `http://localhost:${SERVER_PORT}`;
+      console.info(`✅ Server running on ${url}`);
     });
 
-    // 📊 3️⃣ Iniciamos el cron job para recolección de estado de jobs
     startJobsStatusCollectorCron();
   } catch (error) {
     console.error('❌ Error starting server:', error);
@@ -24,8 +37,6 @@ async function startServer() {
   }
 }
 
-if (process.env.NODE_ENV !== 'production') {
-  startServer();
-}
+startServer();
 
 export default app;

@@ -1,17 +1,14 @@
-import mongoose from "mongoose";
+import mongoose from 'mongoose';
 
 // Usuario con rol, foto, idioma, etc.
-const walletRechargeSchema  = new mongoose.Schema(
+const walletRechargeSchema = new mongoose.Schema(
   {
-    walletId: { type: mongoose.Schema.Types.ObjectId, ref: "Wallet", required: true },
+    walletId: { type: mongoose.Schema.Types.ObjectId, ref: 'Wallet', required: true },
     amount: { type: Number, required: true },
-    
   },
-  { timestamps: true } // crea automáticamente createdAt y updatedAt
+  { timestamps: true }, // crea automáticamente createdAt y updatedAt
 );
 
 // ⚙️ Usa exactamente la colección 'userpay'
-export const User = mongoose.models.User || mongoose.model("recharge", walletRechargeSchema , "recharge");
 export const Recharge =
-  mongoose.models.Recharge ||
-  mongoose.model("Recharge", walletRechargeSchema);
+  mongoose.models.User || mongoose.model('recharge', walletRechargeSchema, 'recharge');

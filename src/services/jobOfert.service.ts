@@ -16,6 +16,7 @@ import { filterOffers as advancedFilterOffers } from './jobOfert/advancedFilter.
 export type OfferFilterOptions = {
   ranges?: string[];
   city?: string;
+  cities?: string[];
   categories?: string[];
   search?: string;
   sortBy?: string | SortCriteria;
@@ -34,6 +35,16 @@ export type OfferFilterOptions = {
   searchFields?: string[];
 };
 
+// ============================================
+// MEJORA AGREGADA: Caché para rangos de precios
+// ============================================
+let priceRangesCache: {
+  data: any;
+  timestamp: number;
+} | null = null;
+
+const CACHE_DURATION = 60 * 60 * 1000; // 1 hora en milisegundos
+
 export const getAllOffers = async () => {
   return await QueryExecutor.findAll(Offer);
 };
@@ -43,8 +54,9 @@ export const getOffersFiltered = async (options?: OfferFilterOptions) => {
   // Si no hay opciones, devolver el resultado sin filtros
   if (!options) {
     return await QueryExecutor.execute(Offer, {}, null, 0, 10);
-  } // 1. LÓGICA DE DECISIÓN: Determinar si es Búsqueda Avanzada
+  }
 
+  // 1. LÓGICA DE DECISIÓN: Determinar si es Búsqueda Avanzada
   const isAdvancedSearch = options.tags || options.minPrice || options.maxPrice;
 
   let filterQuery: any;
@@ -55,8 +67,9 @@ export const getOffersFiltered = async (options?: OfferFilterOptions) => {
   } else {
     // Opción B: Es estándar (usa solo la lógica de City, Fixer, Category)
     filterQuery = standardFilterOffers(options);
-  } // 2. LÓGICA DE BÚSQUEDA POR TEXTO (SEARCH) - ¡UNIFICADA Y CORREGIDA!
+  }
 
+  // 2. LÓGICA DE BÚSQUEDA POR TEXTO (SEARCH) - ¡UNIFICADA Y CORREGIDA!
   let searchQuery: any = {};
 
   if (options.search) {
@@ -75,7 +88,9 @@ export const getOffersFiltered = async (options?: OfferFilterOptions) => {
       // Comportamiento por defecto (smart search sobre todos los campos)
       searchQuery = searchOffers(options.search);
     }
-  } // 3. COMBINAR TODOS LOS FILTROS
+  }
+
+  // 3. COMBINAR TODOS LOS FILTROS
   // Combina la Query de Filtros (filterQuery) y la Query de Búsqueda por Texto (searchQuery)
   // Si se proporciona un filtro de fecha (YYYY-MM-DD), añadir rango createdAt [00:00:00,23:59:59.999]
   if (options && options.date) {
@@ -96,19 +111,34 @@ export const getOffersFiltered = async (options?: OfferFilterOptions) => {
     }
   }
 
-  // Filtrado por rating: si se pasa rating (1..5) aplicamos >=n AND < n+1
+  // 3.2. Lógica para filtro de CALIFICACIÓN (CORREGIDA)
   if (options && typeof options.rating === 'number' && !isNaN(options.rating)) {
-    const n = Math.floor(options.rating);
-    if (n >= 1 && n <= 5) {
-      filterQuery = FilterCommon.combine(filterQuery, { rating: { $gte: n, $lt: n + 1 } });
+    const star = options.rating;
+
+    // Si es un número entero (viene del filtro de estrellas básico)
+    if (Number.isInteger(star) && star >= 1 && star <= 5) {
+      // Lógica del filtro BÁSICO (Rango [N.0, (N+1).0))
+      const minRating = star;
+      const maxRatingExclusive = star + 1;
+
+      filterQuery = FilterCommon.combine(filterQuery, {
+        rating: { $gte: minRating, $lt: maxRatingExclusive },
+      });
+    }
+    // Si es un decimal (viene de la búsqueda avanzada o un filtro exacto)
+    else if (star >= 1.0 && star <= 5.9) {
+      // Lógica del filtro AVANZADO (Comparación exacta)
+      filterQuery = FilterCommon.combine(filterQuery, { rating: star });
     }
   }
 
-  const finalQuery = FilterCommon.combine(filterQuery, searchQuery); // 4. APLICAR ORDENAMIENTO Y PAGINACIÓN
+  const finalQuery = FilterCommon.combine(filterQuery, searchQuery);
 
+  // 4. APLICAR ORDENAMIENTO Y PAGINACIÓN
   const sort = sortOffers(options?.sortBy);
-  const { limit, skip } = PaginationCommon.getOptions(options?.limit, options?.skip); // 5. EJECUTAR LA CONSULTA FINAL
+  const { limit, skip } = PaginationCommon.getOptions(options?.limit, options?.skip);
 
+  // 5. EJECUTAR LA CONSULTA FINAL
   return await QueryExecutor.execute(Offer, finalQuery, sort, skip, limit);
 };
 
@@ -119,6 +149,14 @@ export const getOffersFiltered = async (options?: OfferFilterOptions) => {
  * Por defecto crea 4 buckets internos y añade opciones "Menos de" y "Más de" (por lo que se devuelven 6 items si includeExtremes=true).
  */
 export const getPriceRanges = async (buckets = 4, includeExtremes = true) => {
+  // ============================================
+  // MEJORA AGREGADA: Verificar caché primero
+  // ============================================
+  const now = Date.now();
+  if (priceRangesCache && (now - priceRangesCache.timestamp) < CACHE_DURATION) {
+    return priceRangesCache.data;
+  }
+
   // Agregación para obtener min y max
   const agg = await Offer.aggregate([
     {
@@ -130,21 +168,34 @@ export const getPriceRanges = async (buckets = 4, includeExtremes = true) => {
     },
   ]);
 
-  if (!agg || agg.length === 0) return { min: null, max: null, ranges: [] };
+  if (!agg || agg.length === 0) {
+    const result = { min: null, max: null, ranges: [] };
+    // MEJORA: Guardar en caché
+    priceRangesCache = { data: result, timestamp: now };
+    return result;
+  }
 
-  let min = agg[0].min as number;
-  let max = agg[0].max as number;
+  const min = agg[0].min as number;
+  const max = agg[0].max as number;
 
-  if (min == null || max == null) return { min: null, max: null, ranges: [] };
+  if (min == null || max == null) {
+    const result = { min: null, max: null, ranges: [] };
+    // MEJORA: Guardar en caché
+    priceRangesCache = { data: result, timestamp: now };
+    return result;
+  }
 
   if (min === max) {
     // Un solo valor: devolver rangos sencillos alrededor
     const one = Math.floor(min);
-    return {
+    const result = {
       min: one,
       max: one,
       ranges: [{ label: `= $${one}`, min: one, max: one }],
     };
+    // MEJORA: Guardar en caché
+    priceRangesCache = { data: result, timestamp: now };
+    return result;
   }
 
   // calcular step y límites (algoritmo más estable):
@@ -210,5 +261,15 @@ export const getPriceRanges = async (buckets = 4, includeExtremes = true) => {
     }
   }
 
-  return { min, max, ranges };
+  const result = { min, max, ranges };
+  // MEJORA: Guardar en caché
+  priceRangesCache = { data: result, timestamp: now };
+  return result;
+};
+
+// ============================================
+// MEJORA AGREGADA: Función para limpiar caché manualmente
+// ============================================
+export const clearPriceRangesCache = () => {
+  priceRangesCache = null;
 };

@@ -4,6 +4,7 @@ import crypto from "crypto";
 import clientPromise from "../../../config/db/mongodb";
 import jwt from "jsonwebtoken";
 import nodemailer from "nodemailer";
+import * as activityService from '../../../services/activities.service';
 
 const JWT_SECRET = process.env.JWT_SECRET || "super_secret_key";
 const FRONTEND_URL = process.env.FRONTEND_URL;
@@ -346,6 +347,14 @@ export async function magicLogin(req: Request, res: Response) {
       JWT_SECRET,
       { expiresIn: "7d" }
     );
+    
+    await activityService.createSimpleActivity({
+      userId: user._id,
+      date: new Date(),
+      role: user.role,
+      type: "session_start",
+      metadata: { resumed: true },
+    });
 
     return res.json({
       success: true,

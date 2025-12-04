@@ -8,6 +8,7 @@ import bcrypt from "bcryptjs";
 interface ManualUser {
   email: string;
   name: string;
+  role: string;
   picture?: string;
   password: string;
 }
@@ -15,6 +16,7 @@ interface ManualUser {
 interface InsertedUser {
   email: string;
   name: string;
+  role?: string;
 }
 
 export async function checkUserExists(email: string): Promise<boolean> {
@@ -36,7 +38,7 @@ export async function createManualUser(
     name: user.name,
     email: user.email,
     url_photo: user.picture || "",
-    role: "requester",
+    role: user.role || "requester",
 
     authProviders: [
       {
@@ -133,6 +135,7 @@ export async function createManualUser(
     _id: created._id.toString(),
     name: created.name,
     email: created.email,
+    role: created.role,
     picture: created.url_photo,
   };
 }

@@ -152,9 +152,11 @@ PaymentSchema.pre("validate", async function (next) {
 });
 
 // Índices recomendados
-PaymentSchema.index({ code: 1 }, { unique: true });
+// El campo `code` ya tiene `unique: true` en su definición, evitar doble declaración
 PaymentSchema.index({ payerId: 1, paymentDate: -1 });
 PaymentSchema.index({ jobId: 1, status: 1 });
 
 export const Payment =
   mongoose.models.Payment || mongoose.model<PaymentDoc>("Payment", PaymentSchema);
+
+export default Payment;

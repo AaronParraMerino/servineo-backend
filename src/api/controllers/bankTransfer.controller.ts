@@ -1,8 +1,7 @@
 //pasar
-import { Request, Response } from "express";
+import { Request, Response } from 'express';
 import PaymentIntent from '../../models/PaymentIntent.model';
 import ProviderPaymentMethod from '../../models/ProviderPaymentMethod.model';
-
 const SERVINEO_PROVIDER_ID = 'prov_123';
 
 function generateRef() {
@@ -14,10 +13,7 @@ function generateRef() {
   return s;
 }
 
-export async function createOrReuseIntent(
-  req: Request,
-  res: Response
-){
+export async function createOrReuseIntent(req: Request, res: Response) {
   try {
     console.log('📩 Body recibido:', req.body);
 
@@ -40,7 +36,7 @@ export async function createOrReuseIntent(
     const providerId = SERVINEO_PROVIDER_ID;
 
     console.log('🔍 Buscando intent existente...');
-    let intent = await PaymentIntent.findOne({ fixerId, type: 'wallet'});
+    let intent = await PaymentIntent.findOne({ fixerId, type: 'wallet' });
     console.log('📄 Intent encontrado:', intent);
 
     if (!intent) {
@@ -62,7 +58,7 @@ export async function createOrReuseIntent(
     console.log('🏦 Buscando método de pago activo...');
 
     const method = await ProviderPaymentMethod.findOne({ providerId, active: true });
-    
+
     console.log('✅ Método encontrado:', method);
 
     if (!method) {

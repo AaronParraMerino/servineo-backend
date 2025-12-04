@@ -5,7 +5,7 @@ import { ObjectId } from "mongodb";
 const JWT_SECRET = process.env.JWT_SECRET || "super_secret_key";
 
 interface TokenPayload extends JwtPayload {
-  id: string;
+  _id: string;
 }
 
 interface Ubicacion {

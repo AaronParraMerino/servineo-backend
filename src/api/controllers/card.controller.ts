@@ -1,6 +1,6 @@
+import type { Request, Response } from "express";
 import Stripe from "stripe";
-import { Request, Response } from "express";
-import { Card } from "../../models/card.model";
+import { Card}  from "../../models/card.model";
 import { User } from "../../models/userPayment.model";
 import "dotenv/config";
 
@@ -13,88 +13,88 @@ if (!process.env.STRIPE_SECRET_KEY) {
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 
-// =========================
-// Crear y guardar tarjeta
-// =========================
-export const createCard = async (
-  req: Request,
-  res: Response
-): Promise<Response | void> => {
+export const createCard = async (req: Request, res: Response) => {
   try {
-    const { userId, paymentMethodId } = req.body;
+    const { userId, paymentMethodId, saveCard, cardholderName } = req.body;
 
-    if (!userId || !paymentMethodId) {
-      return res.status(400).json({
-        error: "MISSING_DATA",
-        message: "userId y paymentMethodId son requeridos",
-      });
-    }
-
-    // Verificar que exista el usuario
+    // 1. Buscar usuario en MongoDB
     const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({
-        error: "USER_NOT_FOUND",
-        message: "Usuario no encontrado",
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    let customerId = user.stripeCustomerId;
+
+    if (!customerId) {
+      const customer = await stripe.customers.create({
+        email: user.email,
+        name: user.name,
       });
+
+      customerId = customer.id;
+      user.stripeCustomerId = customerId;
+      await user.save();
+    } else {
+      try {
+        await stripe.customers.retrieve(customerId);
+      } catch (error: unknown) {
+        console.log((error as Error).message);
+        const customer = await stripe.customers.create({
+          email: user.email,
+          name: user.name,
+        });
+        customerId = customer.id;
+        user.stripeCustomerId = customerId;
+        await user.save();
+      }
     }
 
-    // Recuperar el PaymentMethod desde Stripe
-    const paymentMethod = await stripe.paymentMethods.retrieve(
-      paymentMethodId
-    );
+    const paymentMethod = await stripe.paymentMethods.attach(paymentMethodId, {
+      customer: customerId,
+    });
 
-    // 💡 Aquí evitamos el error de que `paymentMethod.card` sea undefined
-    if (!("card" in paymentMethod) || !paymentMethod.card) {
-      return res.status(400).json({
-        error: "INVALID_PAYMENT_METHOD",
-        message: "El paymentMethod no contiene datos de tarjeta",
+    if (saveCard) {
+      if (!paymentMethod.card) {
+        return res.status(400).json({
+          error: 'El método de pago proporcionado no es una tarjeta válida.',
+        });
+      }
+
+      await stripe.customers.update(customerId, {
+        invoice_settings: { default_payment_method: paymentMethod.id },
       });
+
+      const newCard = await Card.create({
+        userId,
+        stripePaymentMethodId: paymentMethod.id,
+        brand: paymentMethod.card?.brand || 'unknown',
+        last4: paymentMethod.card?.last4 || '0000',
+        expMonth: paymentMethod.card?.exp_month || 0,
+        expYear: paymentMethod.card?.exp_year || 0,
+        isDefault: true,
+        cardholderName,
+      });
+
+      return res.json(newCard);
     }
 
-    const newCard = await Card.create({
-      userId,
-      stripePaymentMethodId: paymentMethod.id,
-      brand: paymentMethod.card.brand,
-      last4: paymentMethod.card.last4,
-      expMonth: paymentMethod.card.exp_month,
-      expYear: paymentMethod.card.exp_year,
-    });
-
-    return res.status(201).json(newCard);
-  } catch (error: any) {
-    console.error("Error createCard:", error);
-    return res.status(500).json({
-      error: "INTERNAL_ERROR",
-      message: error.message,
-    });
+    // 5. Retornar mensaje si no se guardó
+    res.json({ message: 'Tarjeta agregada para pago, no guardada' });
+  } catch (error) {
+    console.error('Error createCard:', error);
+    res.status(500).json({ error: (error as Error).message });
   }
 };
 
-// =========================
-// Listar tarjetas de usuario
-// =========================
-export const listCards = async (
-  req: Request,
-  res: Response
-): Promise<Response | void> => {
+export const listCards = async (req: Request, res: Response) => {
   try {
     const { userId } = req.query;
-
-    if (!userId || typeof userId !== "string") {
-      return res.status(400).json({
-        error: "MISSING_USER_ID",
-        message: "userId es requerido",
-      });
+    if (!userId) {
+      return res.status(400).json({ error: 'userId es requerido' });
     }
 
     const cards = await Card.find({ userId });
-    return res.json(cards);
-  } catch (error: any) {
-    console.error("Error listCards:", error);
-    return res.status(500).json({
-      error: "INTERNAL_ERROR",
-      message: error.message,
-    });
+    res.json(cards);
+  } catch (error) {
+    console.error('Error listCards:', error);
+    res.status(500).json({ error: (error as Error).message });
   }
 };

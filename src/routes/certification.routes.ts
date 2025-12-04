@@ -1,3 +1,4 @@
+// ruta oficial para certificaciones
 import { Router } from 'express';
 import * as certificationController from '../controllers/certification.controller';
 
@@ -22,9 +23,11 @@ const router = Router();
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - name
+ *               - institution
+ *               - issueDate
  *             properties:
- *               fixerId:
- *                 type: string
  *               name:
  *                 type: string
  *               institution:
@@ -37,6 +40,9 @@ const router = Router();
  *                 format: date
  *               credentialId:
  *                 type: string
+ *               credentialUrl:
+ *                 type: string
+ *                 description: URL pública de la credencial (subida por el cliente)
  *     responses:
  *       201:
  *         description: Certificación creada
@@ -64,6 +70,24 @@ router.get('/fixer/:fixerId', certificationController.getCertificationsByFixerId
 /**
  * @swagger
  * /certifications/{id}:
+ *   get:
+ *     summary: Obtener certificación por id
+ *     tags: [Certification]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Certificación encontrada
+ */
+router.get('/:id', certificationController.getCertificationById);
+
+/**
+ * @swagger
+ * /certifications/{id}:
  *   put:
  *     summary: Actualizar certificación
  *     tags: [Certification]
@@ -79,6 +103,21 @@ router.get('/fixer/:fixerId', certificationController.getCertificationsByFixerId
  *         application/json:
  *           schema:
  *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               institution:
+ *                 type: string
+ *               issueDate:
+ *                 type: string
+ *                 format: date
+ *               expiryDate:
+ *                 type: string
+ *                 format: date
+ *               credentialId:
+ *                 type: string
+ *               credentialUrl:
+ *                 type: string
  *     responses:
  *       200:
  *         description: Certificación actualizada

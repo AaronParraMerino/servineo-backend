@@ -1,3 +1,4 @@
+// modelo official para offertas de trabajo
 import { Schema, model, models } from 'mongoose';
 
 const offerSchema = new Schema(
@@ -53,6 +54,15 @@ const offerSchema = new Schema(
       index: true,
     },
     contactPhone: { type: String, required: true },
+    photos: {
+      type: [String],
+      validate: {
+        validator: function (v: string[]) {
+          return v && v.length >= 1 && v.length <= 5;
+        },
+        message: 'Debe subir entre 1 y 5 fotos.',
+      },
+    },
     rating: { type: Number, required: true, min: 1, max: 5 },
   },
   {

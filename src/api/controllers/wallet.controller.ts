@@ -1,5 +1,4 @@
 import Stripe from 'stripe';
-import { Request, Response } from "express";
 import { Wallet } from '../../models/wallet.model';
 import { User } from '../../models/userPayment.model';
 import { Recharge } from '../../models/walletRecharge.model';

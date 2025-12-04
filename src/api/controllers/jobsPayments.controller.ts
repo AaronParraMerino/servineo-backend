@@ -21,6 +21,7 @@ export const listJobs = async (req: Request, res: Response): Promise<void> => {
     // 2️⃣ Buscar usuario en MongoDB
     console.log('🔍 Buscando usuario en la base de datos...');
     const user = await User.findById(userId);
+
     if (!user) {
       console.warn('❌ Usuario no encontrado con ID:', userId);
       res.status(404).json({ error: 'Usuario no encontrado' });
@@ -54,9 +55,7 @@ export const listJobs = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    console.log(
-      `📦 ${job.length} trabajo(s) encontrado(s) para el usuario ${user.name}`
-    );
+    console.log(`📦 ${jobs.length} trabajo(s) encontrado(s) para el usuario ${user.name}`);
 
     // 6️⃣ Retornar los trabajos encontrados
     res.status(200).json(jobs);

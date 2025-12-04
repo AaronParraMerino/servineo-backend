@@ -1,9 +1,8 @@
 import { Jobspay } from './../../models/jobsPayment.model';
 import type { Request, Response } from "express";
 import Stripe from "stripe";
-import { Request, Response } from "express";
 import { Payment } from "../../models/payment.model";
-import { Card } from "../../models/card.model";
+import  { Card } from "../../models/card.model";
 import { User } from "../../models/userPayment.model";
 import 'dotenv/config';
 
@@ -25,14 +24,7 @@ export const createPayment = async (req: Request, res: Response) => {
   console.time('⏱ Duración total del proceso');
 
   try {
-    const {
-      requesterId,
-      fixerId,
-      jobId,
-      cardId,
-      amount,
-      paymentMethodId,
-    } = req.body;
+    const { requesterId, fixerId, jobId, cardId, amount, paymentMethodId } = req.body;
 
     console.log('📥 Datos recibidos:', {
       requesterId,
@@ -79,8 +71,7 @@ export const createPayment = async (req: Request, res: Response) => {
     }
 
     // --- CREAR CLIENTE STRIPE SI NO EXISTE ---
-    let customerId = requester.stripeCustomerId as string | undefined;
-
+    let customerId = requester.stripeCustomerId;
     if (!customerId) {
       console.log('🆕 Creando nuevo cliente Stripe...');
       const customer = await stripe.customers.create({
@@ -141,16 +132,6 @@ export const createPayment = async (req: Request, res: Response) => {
       return res.status(400).json({
         error: 'Error al procesar el pago con Stripe',
         details: (stripeError as Error).message,
-      });
-    }
-
-    // Extra seguridad para TypeScript
-    if (!paymentIntent) {
-      console.error("❌ PaymentIntent no se creó correctamente");
-      console.timeEnd("⏱ Duración total del proceso");
-      console.groupEnd();
-      return res.status(500).json({
-        message: "Error interno al crear el pago",
       });
     }
 

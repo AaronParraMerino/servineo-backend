@@ -1,76 +1,139 @@
-// ruta official para offertas de trabajo
-
 import { Router } from 'express';
-import multer from 'multer';
 import * as jobOfferController from '../controllers/job_offer.controller';
+import { upload } from '../config/multer.config';
 
-
-const jobOfficial = Router();
-const upload = multer({ storage: multer.memoryStorage() });
-
-/**
- * @route   POST /api/job-offers
- * @desc    Crear nueva oferta de trabajo
- * @access  Private (requiere autenticación)
- */
-jobOfficial.post(
-    '/',
-    upload.array('photos', 5),
-    jobOfferController.createJobOffer
-);
+const router = Router();
 
 /**
- * @route   GET /api/job-offers
- * @desc    Obtener todas las ofertas con filtros y paginación
- * @access  Public
+ * @swagger
+ * tags:
+ *   name: JobOffers
+ *   description: Gestión de ofertas de trabajo de fixers
  */
-jobOfficial.get('/', jobOfferController.getAllJobOffers);
 
 /**
- * @route   GET /api/job-offers/fixer/:fixerId
- * @desc    Obtener ofertas de un fixer específico
- * @access  Public
+ * @swagger
+ * /job-offers:
+ *   post:
+ *     summary: Crear una nueva oferta de trabajo
+ *     tags: [JobOffers]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               fixerId:
+ *                 type: string
+ *               fixerName:
+ *                 type: string
+ *               fixerWhatsapp:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               city:
+ *                 type: string
+ *               price:
+ *                 type: number
+ *               categories:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               images:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *     responses:
+ *       201:
+ *         description: Oferta creada exitosamente
+ *       400:
+ *         description: Error en la solicitud
  */
-jobOfficial.get('/fixer/:fixerId', jobOfferController.getJobOffersByFixerId);
+router.post('/', upload.array('images', 5), jobOfferController.createJobOffer);
 
 /**
- * @route   GET /api/job-offers/:id
- * @desc    Obtener una oferta por ID
- * @access  Public
+ * @swagger
+ * /job-offers:
+ *   get:
+ *     summary: Obtener todas las ofertas de trabajo
+ *     tags: [JobOffers]
+ *     parameters:
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *         description: Filtrar por categoría
+ *       - in: query
+ *         name: city
+ *         schema:
+ *           type: string
+ *         description: Filtrar por ciudad
+ *     responses:
+ *       200:
+ *         description: Lista de todas las ofertas
  */
-jobOfficial.get('/:id', jobOfferController.getJobOfferById);
+router.get('/', jobOfferController.getAllJobOffers);
 
 /**
- * @route   PUT /api/job-offers/:id
- * @desc    Actualizar una oferta
- * @access  Private (debe ser el dueño)
+ * @swagger
+ * /job-offers/fixer/{fixerId}:
+ *   get:
+ *     summary: Obtener ofertas de un fixer
+ *     tags: [JobOffers]
+ *     parameters:
+ *       - in: path
+ *         name: fixerId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Lista de ofertas
  */
-jobOfficial.put(
-    '/:id',
-    upload.array('photos', 5),
-    jobOfferController.updateJobOffer
-);
+router.get('/fixer/:fixerId', jobOfferController.getJobOffersByFixerId);
 
 /**
- * @route   PATCH /api/job-offers/:id
- * @desc    Actualizar una oferta
- * @access  Private (debe ser el dueño)
+ * @swagger
+ * /job-offers/{id}:
+ *   put:
+ *     summary: Actualizar una oferta
+ *     tags: [JobOffers]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: Oferta actualizada
  */
-jobOfficial.patch(
-    '/:id',
-    upload.array('photos', 5),
-    jobOfferController.updateJobOffer
-);
+router.put('/:id', jobOfferController.updateJobOffer);
 
 /**
- * @route   DELETE /api/job-offers/:id
- * @desc    Eliminar una oferta
- * @access  Private (debe ser el dueño)
+ * @swagger
+ * /job-offers/{id}:
+ *   delete:
+ *     summary: Eliminar una oferta
+ *     tags: [JobOffers]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Oferta eliminada
  */
-jobOfficial.delete(
-    '/:id',
-    jobOfferController.deleteJobOffer
-);
+router.delete('/:id', jobOfferController.deleteJobOffer);
 
-export default jobOfficial;
-//ACABADO
+export default router;

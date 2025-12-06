@@ -167,6 +167,9 @@ app.use('/api/transferencia-bancaria', bankTransferRoutes);
 app.use('/api/v1/invoices', invoiceDetailRouter);
 app.use('/api/fixer/payment-center', PaymentCenterRoutes);
 app.use('/payments', paymentsRouter);
+app.use('/api/devon', forumRoutes);
+app.use('/api/devon', faqRoutes);
+app.use('/api/devon', captchaRoutes);
 app.use('/', SudoersRouter);
 
 console.log('FEATURE_DEV_WALLET =', FEATURE_DEV_WALLET);
@@ -179,9 +182,6 @@ if (FEATURE_SIM_PAYMENTS) {
 }
 app.use('/devices', deviceRouter);
 
-app.use('/api', forumRoutes);
-app.use('/api', faqRoutes);
-app.use('/', captchaRoutes);
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));

@@ -78,6 +78,7 @@ const allowedOrigins = [
   'https://devmasters-servineo-frontend-zk3q.vercel.app',
   'https://servineo.app',
   'http://localhost:3000',
+  'https://devon-servineo.vercel.app',
 ];
 
 app.use(
